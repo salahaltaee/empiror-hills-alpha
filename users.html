@@ -22,7 +22,7 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
         <span class="navbar-brand fw-bold">إدارة المستخدمين</span>
-        <span class="text-muted small">وضع مفتوح (لا يتطلب تسجيل دخول)</span>
+        <span class="text-muted small">لا يتطلب تسجيل دخول</span>
       </div>
     </div>
   </nav>
@@ -99,7 +99,7 @@
         </div>
       </form>
       <div class="small text-muted mt-2">
-        هذه الصفحة تعمل بدون تسجيل دخول، وتستخدم Anonymous Auth تلقائيًا + دوال Callable.
+        هذه الصفحة تعمل بدون تسجيل دخول وتعتمد على دوال Callable فقط.
       </div>
     </div>
 
@@ -138,12 +138,10 @@
   <!-- SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions-compat.js"></script>
 
   <script>
-    // ===== Firebase Init (لا يوجد ملفات خارجية) =====
+    // ===== Firebase Init =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -151,9 +149,6 @@
       storageBucket: "empiror-hills-alpha.appspot.com",
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    // مهم: نفس الريجن
     const functions = firebase.app().functions('us-central1');
 
     // ===== عناصر =====
@@ -178,7 +173,7 @@
     let USERS=[]; let CURRENT_ID=null; // uid قيد التعديل
 
     // ===== Utils =====
-    function showSpinner(v){ spinner.style.display=v?'inline-block':'none'; }
+    function showSpinner(v){ if(!spinner) return; spinner.style.display=v?'inline-block':'none'; }
     function toast(msg, type='success'){
       const el=document.createElement('div');
       el.className=`toast align-items-center text-bg-${type} border-0`;
@@ -235,9 +230,12 @@
     async function loadUsers(){
       showSpinner(true);
       try{
-        const s=await db.collection('users').orderBy('displayName').get();
-        USERS=s.docs.map(d=>({ id:d.id, ...d.data() }));
+        // القراءة عبر دالة Callable بدلاً من Firestore مباشرة (حتى لا نحتاج Auth)
+        const res = await functions.httpsCallable('adminListUsers')();
+        USERS = (res?.data?.users || []).map(u=> ({...u, id:u.id}));
         render();
+      } catch(e){
+        alert('تعذر تحميل المستخدمين: '+(e.message||e));
       } finally{ showSpinner(false); }
     }
 
@@ -276,14 +274,10 @@
     btnSave.addEventListener('click', saveUser);
     search.addEventListener('input', render);
 
-    // ===== Anonymous Auth تلقائي =====
-    auth.onAuthStateChanged(async (u)=>{
-      if(!u){
-        try{ await auth.signInAnonymously(); }
-        catch(e){ alert('فشل الدخول المجهول: '+(e.message||e)); return; }
-      }
+    // بدء التحميل مباشرة بدون أي Auth
+    (async function(){
       await loadUsers();
-    });
+    })();
   </script>
 </body>
 </html>
