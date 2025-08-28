@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لوحة الإدارة – Emperor Hills Alpha</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
+    .kpi{ border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 16px #00000012 }
+    .kanban{ display:grid; grid-template-columns: repeat(6, minmax(260px, 1fr)); gap:12px; }
+    .col-kanban{ background:#fff; border-radius:14px; padding:10px; border:1px solid #e5e7eb; min-height: 320px; }
+    .col-title{ font-weight:700; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between }
+    .ticket{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px; margin-bottom:8px; cursor:grab; box-shadow:0 4px 12px #0000000a }
+    .ticket.dragging{ opacity:.6 }
+    .badge-dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
+    .state-new{ background:#e5e7eb }
+    .state-assigned{ background:#3b82f6 }
+    .state-progress{ background:#f59e0b }
+    .state-hold{ background:#8b5cf6 }
+    .state-done{ background:#16a34a }
+    .state-overdue{ background:#ef4444 }
+    .toolbar{ position:sticky; top:0; z-index:5; background:linear-gradient(#ffffffdd,#ffffffcc); backdrop-filter:blur(6px) }
+  </style>
+</head>
+<body>
+  <nav class="navbar bg-white border-bottom shadow-sm">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-bold">لوحة الإدارة • Emperor Hills Alpha</span>
+        <select id="buildingFilter" class="form-select form-select-sm" style="width:140px">
+          <option value="all">كل البنايات</option>
+          <option value="C2">C2</option>
+          <option value="C4">C4</option>
+          <option value="C6">C6</option>
+        </select>
+        <input id="dateFrom" type="date" class="form-control form-control-sm" />
+        <input id="dateTo" type="date" class="form-control form-control-sm" />
+        <button id="btnApplyRange" class="btn btn-outline-primary btn-sm">تطبيق</button>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button id="btnExportCSV" class="btn btn-light btn-sm">تصدير CSV</button>
+        <button id="btnUsers" class="btn btn-secondary btn-sm">إدارة المستخدمين</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-3">
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">إجمالي التذاكر</div><div id="kAll" class="fw-bold fs-4">0</div></div></div>
+      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">قيد التنفيذ</div><div id="kProgress" class="fw-bold fs-4">0</div></div></div>
+      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">مكتملة</div><div id="kDone" class="fw-bold fs-4">0</div></div></div>
+      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">P1 الحالية</div><div id="kP1" class="fw-bold fs-4">0</div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-8">
+        <div class="card"><div class="card-body"><canvas id="chartByCategory" height="120"></canvas></div></div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card"><div class="card-body"><canvas id="chartByBuilding" height="120"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="toolbar py-2 mb-2 d-flex align-items-center justify-content-between">
+      <h5 class="m-0">لوح كانبان للتذاكر</h5>
+      <div class="input-group" style="max-width:340px">
+        <span class="input-group-text">بحث</span>
+        <input id="searchInput" class="form-control" placeholder="وصف المشكلة / رقم التذكرة" />
+      </div>
+    </div>
+
+    <div class="kanban" id="kanban">
+      <!-- الأعمدة تُنشأ برمجياً -->
+    </div>
+  </main>
+
+  <!-- Modal: Ticket View / Assign -->
+  <div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">تفاصيل التذكرة</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="tMeta" class="mb-2 small text-muted"></div>
+          <p id="tDesc" class="mb-3"></p>
+          <div id="tAttachments" class="d-flex gap-2 flex-wrap mb-3"></div>
+
+          <div class="border rounded p-3">
+            <div class="mb-2 fw-bold">الإسناد والتحديث</div>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-6">
+                <label class="form-label">إسناد إلى فني</label>
+                <select id="assignTech" class="form-select"></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">الحالة</label>
+                <select id="assignStatus" class="form-select">
+                  <option value="new">جديد</option>
+                  <option value="assigned">مُسند</option>
+                  <option value="in_progress">قيد التنفيذ</option>
+                  <option value="on_hold">بانتظار</option>
+                  <option value="completed">مكتمل</option>
+                </select>
+              </div>
+              <div class="col-md-3 d-flex gap-2">
+                <button id="btnSaveAssign" class="btn btn-primary w-100">حفظ</button>
+                <button id="btnReopen" class="btn btn-outline-secondary w-100">إعادة فتح</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Users -->
+  <div class="modal fade" id="usersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">إدارة المستخدمين</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="userForm" class="border rounded p-3 mb-3">
+            <div class="row g-2">
+              <div class="col-6"><input id="uName" class="form-control" placeholder="الاسم"/></div>
+              <div class="col-6"><input id="uPhone" class="form-control" placeholder="الهاتف"/></div>
+              <div class="col-6">
+                <select id="uRole" class="form-select">
+                  <option value="tech">Technician</option>
+                  <option value="ops">Ops</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="col-6"><input id="uBuildings" class="form-control" placeholder="نطاق البنايات (مثال: C2,C4)"/></div>
+              <div class="col-12 d-grid"><button id="btnAddUser" class="btn btn-primary" type="button">إضافة/تحديث</button></div>
+            </div>
+          </form>
+          <div id="usersList" class="list-group small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
+
+  <script>
+    // ===== Firebase Init =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
+      authDomain: "empiror-hills-alpha.firebaseapp.com",
+      projectId: "empiror-hills-alpha",
+      storageBucket: "empiror-hills-alpha.appspot.com",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ===== State =====
+    const STATUSES = ['new','assigned','in_progress','on_hold','completed'];
+    let TICKETS = []; // آخر تحميل
+    let CURRENT = null;
+
+    // ===== UI Refs =====
+    const kAll = document.getElementById('kAll');
+    const kProgress = document.getElementById('kProgress');
+    const kDone = document.getElementById('kDone');
+    const kP1 = document.getElementById('kP1');
+    const buildingFilter = document.getElementById('buildingFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const btnApplyRange = document.getElementById('btnApplyRange');
+    const btnExportCSV = document.getElementById('btnExportCSV');
+    const searchInput = document.getElementById('searchInput');
+    const kanban = document.getElementById('kanban');
+
+    const ticketModal = new bootstrap.Modal(document.getElementById('ticketModal'));
+    const tMeta = document.getElementById('tMeta');
+    const tDesc = document.getElementById('tDesc');
+    const tAttachments = document.getElementById('tAttachments');
+    const assignTech = document.getElementById('assignTech');
+    const assignStatus = document.getElementById('assignStatus');
+    const btnSaveAssign = document.getElementById('btnSaveAssign');
+    const btnReopen = document.getElementById('btnReopen');
+
+    const usersModal = new bootstrap.Modal(document.getElementById('usersModal'));
+    document.getElementById('btnUsers').addEventListener('click', ()=> usersModal.show());
+    const uName = document.getElementById('uName');
+    const uPhone = document.getElementById('uPhone');
+    const uRole = document.getElementById('uRole');
+    const uBuildings = document.getElementById('uBuildings');
+    const btnAddUser = document.getElementById('btnAddUser');
+    const usersList = document.getElementById('usersList');
+
+    // ===== Helpers =====
+    const stateClass = (status)=>{
+      return status==='new' ? 'state-new' : status==='assigned' ? 'state-assigned' : status==='in_progress' ? 'state-progress' : status==='on_hold' ? 'state-hold' : 'state-done';
+    }
+
+    function withinRange(ts){
+      const d = new Date(ts?.toDate?.() || ts || Date.now());
+      const from = dateFrom.value ? new Date(dateFrom.value) : null;
+      const to = dateTo.value ? new Date(dateTo.value) : null;
+      if(from && d < from) return false;
+      if(to){ const end = new Date(to); end.setHours(23,59,59,999); if(d > end) return false; }
+      return true;
+    }
+
+    function ticketCard(t){
+      const el = document.createElement('div');
+      el.className = 'ticket';
+      el.draggable = true;
+      el.dataset.id = t.id;
+      el.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="badge ${t.priority==='P1'?'text-bg-danger':t.priority==='P2'?'text-bg-warning':'text-bg-secondary'}">${t.priority}</span>
+          <span class="badge-dot ${stateClass(t.status)}"></span>
+        </div>
+        <div class="fw-bold">${t.code}</div>
+        <div class="small text-muted">${t.building} • طابق ${String(t.floor).padStart(2,'0')} • ${t.unitLabel}</div>
+        <div class="small">${(t.description||'').slice(0,120)}</div>
+        <div class="small text-end"><a href="#" class="stretched-link">فتح</a></div>`;
+      el.addEventListener('click', (e)=>{ e.preventDefault(); openTicket(t.id); });
+      el.addEventListener('dragstart', ()=>{ el.classList.add('dragging'); });
+      el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); });
+      return el;
+    }
+
+    function buildKanban(){
+      kanban.innerHTML = '';
+      const names = {
+        new:'جديد', assigned:'مُسند', in_progress:'قيد التنفيذ', on_hold:'بانتظار', completed:'مكتمل'
+      };
+      STATUSES.forEach(st=>{
+        const col = document.createElement('div');
+        col.className = 'col-kanban';
+        col.dataset.status = st;
+        col.innerHTML = `<div class="col-title"><span>${names[st]}</span><span class="badge text-bg-light" id="count-${st}">0</span></div><div class="dropzone" style="min-height:260px"></div>`;
+        const dz = col.querySelector('.dropzone');
+        dz.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+        dz.addEventListener('drop', async (e)=>{
+          e.preventDefault();
+          const dragging = document.querySelector('.ticket.dragging');
+          if(!dragging) return;
+          const id = dragging.dataset.id;
+          dz.appendChild(dragging);
+          await db.collection('tickets').doc(id).update({ status: st, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+        kanban.appendChild(col);
+      })
+    }
+
+    let chartByCategory, chartByBuilding;
+    function updateCharts(data){
+      const byCategory = {};
+      const byBuilding = {};
+      data.forEach(t=>{
+        byCategory[t.category||'غير محدد'] = (byCategory[t.category||'غير محدد']||0)+1;
+        byBuilding[t.building||'؟'] = (byBuilding[t.building||'؟']||0)+1;
+      });
+      const ctx1 = document.getElementById('chartByCategory');
+      const ctx2 = document.getElementById('chartByBuilding');
+      chartByCategory?.destroy(); chartByBuilding?.destroy();
+      chartByCategory = new Chart(ctx1, { type:'bar', data:{ labels:Object.keys(byCategory), datasets:[{ label:'عدد التذاكر', data:Object.values(byCategory) }] }, options:{ responsive:true, plugins:{legend:{display:false}} }});
+      chartByBuilding = new Chart(ctx2, { type:'doughnut', data:{ labels:Object.keys(byBuilding), datasets:[{ data:Object.values(byBuilding) }] }, options:{ responsive:true }});
+    }
+
+    function render(){
+      const b = buildingFilter.value;
+      const q = (searchInput.value||'').toLowerCase();
+      const rows = { new:[], assigned:[], in_progress:[], on_hold:[], completed:[] };
+      const visible = TICKETS.filter(t=> (b==='all' || t.building===b) && withinRange(t.createdAt) && (!q || (t.description||'').toLowerCase().includes(q) || (t.code||'').toLowerCase().includes(q)) );
+
+      visible.forEach(t=> rows[t.status||'new'].push(t));
+
+      STATUSES.forEach(st=>{
+        const dz = kanban.querySelector(`[data-status="${st}"] .dropzone`);
+        const count = document.getElementById(`count-${st}`);
+        dz.innerHTML='';
+        rows[st].forEach(t=> dz.appendChild(ticketCard(t)) );
+        count.textContent = rows[st].length;
+      });
+
+      kAll.textContent = visible.length;
+      kProgress.textContent = rows['in_progress'].length;
+      kDone.textContent = rows['completed'].length;
+      kP1.textContent = visible.filter(t=> t.priority==='P1' && (t.status==='new' || t.status==='assigned' || t.status==='in_progress')).length;
+
+      updateCharts(visible);
+    }
+
+    async function loadUsers(){
+      // Load techs to assign
+      const techSnap = await db.collection('users').where('role','==','tech').get();
+      assignTech.innerHTML = '<option value="">— لا أحد —</option>';
+      techSnap.forEach(d=>{
+        const u = d.data();
+        const opt = document.createElement('option');
+        opt.value = d.id; opt.textContent = u.displayName || d.id;
+        assignTech.appendChild(opt);
+      })
+
+      // Users list
+      const us = await db.collection('users').orderBy('displayName').get();
+      usersList.innerHTML='';
+      us.forEach(d=>{
+        const u = d.data();
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
+        item.innerHTML = `<div class="d-flex justify-content-between"><div><strong>${u.displayName||d.id}</strong> <span class="badge text-bg-light">${u.role}</span><div class="text-muted">${u.phone||''} • ${ (u.buildingScope||[]).join(',') }</div></div><button class="btn btn-sm btn-outline-danger">تعطيل</button></div>`;
+        item.querySelector('button').addEventListener('click', async ()=>{
+          await db.collection('users').doc(d.id).update({ isActive: false });
+          loadUsers();
+        });
+        item.addEventListener('click', ()=>{
+          uName.value = u.displayName||''; uPhone.value = u.phone||''; uRole.value = u.role||'tech'; uBuildings.value = (u.buildingScope||[]).join(',');
+        })
+        usersList.appendChild(item);
+      })
+    }
+
+    btnAddUser.addEventListener('click', async ()=>{
+      const id = (uName.value||'').trim().toLowerCase().replace(/\s+/g,'_');
+      if(!id) return alert('اكتب الاسم');
+      await db.collection('users').doc(id).set({
+        displayName: uName.value.trim(),
+        phone: uPhone.value.trim(),
+        role: uRole.value,
+        buildingScope: (uBuildings.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+        isActive: true,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge:true });
+      await loadUsers();
+      alert('تم حفظ المستخدم');
+    });
+
+    async function openTicket(id){
+      const doc = await db.collection('tickets').doc(id).get();
+      if(!doc.exists) return alert('التذكرة غير موجودة');
+      const t = { id: doc.id, ...doc.data() };
+      CURRENT = t;
+      tMeta.innerHTML = `<div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="badge-dot ${stateClass(t.status)}"></span>
+        <span>${t.code}</span>
+        <span class="text-muted">• ${t.building} • طابق ${String(t.floor).padStart(2,'0')} • ${t.unitLabel}</span>
+        <span class="badge ${t.priority==='P1'?'text-bg-danger':t.priority==='P2'?'text-bg-warning':'text-bg-secondary'}">${t.priority}</span>
+      </div>`;
+      tDesc.textContent = t.description || '';
+      tAttachments.innerHTML='';
+      (t.attachments||[]).forEach(a=>{
+        const el = document.createElement(a.type?.startsWith('image/')?'img':'video');
+        el.src = a.url; el.style.maxWidth='90px'; el.style.maxHeight='90px'; el.style.borderRadius='8px'; el.style.border='1px solid #e5e7eb'; if(el.tagName==='VIDEO') el.controls=true; tAttachments.appendChild(el);
+      })
+
+      // load techs
+      await loadUsers();
+      assignTech.value = t.assignedTo?.uid || '';
+      assignStatus.value = t.status || 'new';
+
+      ticketModal.show();
+    }
+
+    btnSaveAssign.addEventListener('click', async ()=>{
+      if(!CURRENT) return;
+      const id = CURRENT.id;
+      const uid = assignTech.value || null;
+      let payload = { status: assignStatus.value, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if(uid){
+        const u = await db.collection('users').doc(uid).get();
+        payload.assignedTo = { uid, name: (u.data()?.displayName)||uid };
+        if(assignStatus.value==='new') payload.status = 'assigned'; // إذا أسندنا معناها مو جديد بعد
+      } else {
+        payload.assignedTo = firebase.firestore.FieldValue.delete();
+      }
+      await db.collection('tickets').doc(id).update(payload);
+      ticketModal.hide();
+      await reloadTickets();
+      render();
+    });
+
+    btnReopen.addEventListener('click', async ()=>{
+      if(!CURRENT) return;
+      await db.collection('tickets').doc(CURRENT.id).update({ status:'assigned', updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      ticketModal.hide();
+      await reloadTickets();
+      render();
+    });
+
+    // ===== Load Tickets (with live updates) =====
+    let unsub = null;
+    async function reloadTickets(){
+      if(unsub) unsub();
+      let ref = db.collection('tickets').orderBy('createdAt','desc').limit(200);
+      unsub = ref.onSnapshot(snap=>{
+        TICKETS = snap.docs.map(d=> ({ id:d.id, ...d.data() }));
+        render();
+      });
+    }
+
+    // ===== Export CSV =====
+    btnExportCSV.addEventListener('click', ()=>{
+      const rows = [ ['code','building','floor','unit','priority','status','category','createdAt','assignedTo'] ];
+      TICKETS.forEach(t=>{
+        rows.push([t.code,t.building,t.floor,t.unitLabel,t.priority,t.status,t.category, new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toISOString(), t.assignedTo?.name||'' ]);
+      });
+      const csv = rows.map(r=> r.map(v=>`"${String(v||'').replace(/"/g,'\"')}"`).join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='tickets.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // ===== Events =====
+    buildingFilter.addEventListener('change', render);
+    btnApplyRange.addEventListener('click', render);
+    searchInput.addEventListener('input', render);
+
+    // ===== Boot =====
+    (async function(){
+      buildKanban();
+      await reloadTickets();
+    })();
+  </script>
+</body>
+</html>
