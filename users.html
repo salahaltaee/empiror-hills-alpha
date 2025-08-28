@@ -18,10 +18,7 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
         <span class="navbar-brand fw-bold">إدارة المستخدمين</span>
-        <span id="whoami" class="text-muted small"></span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <button id="btnLogout" class="btn btn-outline-danger btn-sm">تسجيل الخروج</button>
+        <span id="whoami" class="text-muted small">وضع مفتوح (لا يحتاج تسجيل دخول)</span>
       </div>
     </div>
   </nav>
@@ -92,7 +89,7 @@
         </div>
       </form>
       <div class="small text-muted mt-2">
-        ملاحظة: هذه الصفحة ملف واحد مستقل. تعتمد على دوال Callable منشورة في المشروع: <code>adminCreateUser</code> و <code>adminUpdateUser</code> و <code>adminDeleteUser</code>.
+        هذه الصفحة تعمل بدون تسجيل دخول، وتستخدم Anonymous Auth تلقائيًا + دوال Callable.
       </div>
     </div>
 
@@ -125,7 +122,7 @@
     </div>
   </main>
 
-  <!-- Firebase SDKs -->
+  <!-- SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
@@ -133,7 +130,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions-compat.js"></script>
 
   <script>
-    // ===== Firebase Init (بدون أي JSON خارجي) =====
+    // ===== Firebase Init (لا يوجد ملفات خارجية) =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -143,13 +140,10 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    // مهم: تحديد الريجن لتفادي CORS عند الاستضافة على GitHub Pages
+    // مهم: نفس الريجن
     const functions = firebase.app().functions('us-central1');
 
-    // ===== Refs =====
-    const whoami = document.getElementById('whoami');
-    const btnLogout = document.getElementById('btnLogout');
-
+    // ===== عناصر =====
     const uEmail=document.getElementById('uEmail');
     const uPassword=document.getElementById('uPassword');
     const uName=document.getElementById('uName');
@@ -162,22 +156,15 @@
     const tbody=document.getElementById('tbody');
     const search=document.getElementById('search');
     const formMsg=document.getElementById('formMsg');
-
-    // بنايات – Check List
     const bC2=document.getElementById('bC2');
     const bC4=document.getElementById('bC4');
     const bC6=document.getElementById('bC6');
 
-    let USERS=[];
-    let CURRENT_ID=null; // uid قيد التعديل
+    let USERS=[]; let CURRENT_ID=null;
 
     // ===== Helpers =====
-    function getBuildingScope(){
-      const arr=[]; if(bC2.checked) arr.push('C2'); if(bC4.checked) arr.push('C4'); if(bC6.checked) arr.push('C6'); return arr;
-    }
-    function setBuildingScope(arr=[]){
-      bC2.checked=arr.includes('C2'); bC4.checked=arr.includes('C4'); bC6.checked=arr.includes('C6');
-    }
+    function getBuildingScope(){ const a=[]; if(bC2.checked) a.push('C2'); if(bC4.checked) a.push('C4'); if(bC6.checked) a.push('C6'); return a; }
+    function setBuildingScope(a=[]){ bC2.checked=a.includes('C2'); bC4.checked=a.includes('C4'); bC6.checked=a.includes('C6'); }
     function resetForm(){ CURRENT_ID=null; uEmail.value=''; uPassword.value=''; uName.value=''; uPhone.value=''; uRole.value='tech'; setBuildingScope([]); uActive.checked=true; uSkills.value=''; formMsg.textContent=''; }
     btnResetForm.addEventListener('click', resetForm);
 
@@ -204,7 +191,12 @@
       });
       btnDel.addEventListener('click', async ()=>{
         if(!confirm('متأكد من الحذف؟')) return;
-        try{ await functions.httpsCallable('adminDeleteUser')({ uid:id }); await loadUsers(); } catch(e){ alert('تعذر الحذف: '+(e.message||e)); }
+        try{
+          await functions.httpsCallable('adminDeleteUser')({ uid:id });
+          await loadUsers();
+        }catch(e){
+          alert('تعذر الحذف: '+(e.message||e));
+        }
       });
       return tr;
     }
@@ -231,52 +223,52 @@
         const scope=getBuildingScope();
         if(!CURRENT_ID){
           if(!password) return alert('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
-          const res=await functions.httpsCallable('adminCreateUser')({ email, password, profile:{
-            displayName:uName.value.trim(),
-            phone:uPhone.value.trim(),
-            role:uRole.value,
-            buildingScope:scope,
-            skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
-            isActive:!!uActive.checked
-          }});
+          const res=await functions.httpsCallable('adminCreateUser')({
+            email, password, profile:{
+              displayName:uName.value.trim(),
+              phone:uPhone.value.trim(),
+              role:uRole.value,
+              buildingScope:scope,
+              skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+              isActive:!!uActive.checked
+            }
+          });
           CURRENT_ID=res.data.uid; formMsg.textContent='تم الإنشاء بنجاح';
         } else {
-          await functions.httpsCallable('adminUpdateUser')({ uid:CURRENT_ID, email, password: password||undefined, profile:{
-            displayName:uName.value.trim(),
-            phone:uPhone.value.trim(),
-            role:uRole.value,
-            buildingScope:scope,
-            skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
-            isActive:!!uActive.checked
-          }});
+          await functions.httpsCallable('adminUpdateUser')({
+            uid:CURRENT_ID, email, password: password||undefined, profile:{
+              displayName:uName.value.trim(),
+              phone:uPhone.value.trim(),
+              role:uRole.value,
+              buildingScope:scope,
+              skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+              isActive:!!uActive.checked
+            }
+          });
           formMsg.textContent='تم التحديث بنجاح';
         }
         uPassword.value='';
         await loadUsers();
-      } catch(e){ alert('خطأ: '+(e.message||e)); }
+      } catch(e){
+        // إظهار سبب الخطأ بوضوح
+        const msg = e?.message || e?.code || 'Unknown error';
+        alert('خطأ: ' + msg);
+      }
     }
 
     btnSave.addEventListener('click', saveUser);
     search.addEventListener('input', render);
-    btnLogout.addEventListener('click', ()=> auth.signOut());
 
-    // ===== الحماية: يجب أن يكون المستخدم "أدمن" =====
-    async function guardAdmin(u){
-      const snap = await db.collection('users').doc(u.uid).get();
-      const role = snap.data()?.role || 'tech';
-      whoami.textContent = (snap.data()?.displayName || u.email) + ' • ' + role;
-      if(role!=='admin'){
-        alert('هذه الصفحة للمشرف فقط');
-      }
-    }
-
+    // ===== Anonymous Auth تلقائي =====
     auth.onAuthStateChanged(async (u)=>{
       if(!u){
-        whoami.textContent = 'غير مسجل دخول';
-        alert('سجّل دخول أدمن لاستخدام هذه الصفحة');
-        return;
+        try{
+          await auth.signInAnonymously();
+        }catch(e){
+          alert('فشل الدخول المجهول: ' + (e.message||e));
+          return;
+        }
       }
-      await guardAdmin(u);
       await loadUsers();
     });
   </script>
