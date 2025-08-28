@@ -55,10 +55,26 @@
             <option value="admin">Admin</option>
           </select>
         </div>
+
+        <!-- Check List لنطاق البنايات -->
         <div class="col-md-5">
           <label class="form-label">نطاق البنايات</label>
-          <input id="uBuildings" class="form-control" placeholder="مثال: C2,C4" />
+          <div class="d-flex gap-3 flex-wrap pt-2">
+            <div class="form-check">
+              <input id="bC2" class="form-check-input" type="checkbox" value="C2">
+              <label class="form-check-label" for="bC2">C2</label>
+            </div>
+            <div class="form-check">
+              <input id="bC4" class="form-check-input" type="checkbox" value="C4">
+              <label class="form-check-label" for="bC4">C4</label>
+            </div>
+            <div class="form-check">
+              <input id="bC6" class="form-check-input" type="checkbox" value="C6">
+              <label class="form-check-label" for="bC6">C6</label>
+            </div>
+          </div>
         </div>
+
         <div class="col-md-2 d-flex align-items-end">
           <div class="form-check form-switch">
             <input id="uActive" class="form-check-input" type="checkbox" checked>
@@ -117,7 +133,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions-compat.js"></script>
 
   <script>
-    // ===== Firebase Init (لا يوجد أي ملف JSON خارجي) =====
+    // ===== Firebase Init (بدون أي JSON خارجي) =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -127,7 +143,8 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    const functions = firebase.functions();
+    // مهم: تحديد الريجن لتفادي CORS عند الاستضافة على GitHub Pages
+    const functions = firebase.app().functions('us-central1');
 
     // ===== Refs =====
     const whoami = document.getElementById('whoami');
@@ -138,7 +155,6 @@
     const uName=document.getElementById('uName');
     const uPhone=document.getElementById('uPhone');
     const uRole=document.getElementById('uRole');
-    const uBuildings=document.getElementById('uBuildings');
     const uActive=document.getElementById('uActive');
     const uSkills=document.getElementById('uSkills');
     const btnSave=document.getElementById('btnSave');
@@ -147,11 +163,22 @@
     const search=document.getElementById('search');
     const formMsg=document.getElementById('formMsg');
 
+    // بنايات – Check List
+    const bC2=document.getElementById('bC2');
+    const bC4=document.getElementById('bC4');
+    const bC6=document.getElementById('bC6');
+
     let USERS=[];
     let CURRENT_ID=null; // uid قيد التعديل
 
     // ===== Helpers =====
-    function resetForm(){ CURRENT_ID=null; uEmail.value=''; uPassword.value=''; uName.value=''; uPhone.value=''; uRole.value='tech'; uBuildings.value=''; uActive.checked=true; uSkills.value=''; formMsg.textContent=''; }
+    function getBuildingScope(){
+      const arr=[]; if(bC2.checked) arr.push('C2'); if(bC4.checked) arr.push('C4'); if(bC6.checked) arr.push('C6'); return arr;
+    }
+    function setBuildingScope(arr=[]){
+      bC2.checked=arr.includes('C2'); bC4.checked=arr.includes('C4'); bC6.checked=arr.includes('C6');
+    }
+    function resetForm(){ CURRENT_ID=null; uEmail.value=''; uPassword.value=''; uName.value=''; uPhone.value=''; uRole.value='tech'; setBuildingScope([]); uActive.checked=true; uSkills.value=''; formMsg.textContent=''; }
     btnResetForm.addEventListener('click', resetForm);
 
     function row(u, id){
@@ -172,7 +199,7 @@
       btnEdit.addEventListener('click', ()=>{
         CURRENT_ID=id;
         uEmail.value=u.email||''; uPassword.value=''; uName.value=u.displayName||''; uPhone.value=u.phone||'';
-        uRole.value=u.role||'tech'; uBuildings.value=(u.buildingScope||[]).join(','); uActive.checked=!!u.isActive; uSkills.value=(u.skills||[]).join(',');
+        uRole.value=u.role||'tech'; setBuildingScope(u.buildingScope||[]); uActive.checked=!!u.isActive; uSkills.value=(u.skills||[]).join(',');
         window.scrollTo({top:0, behavior:'smooth'});
       });
       btnDel.addEventListener('click', async ()=>{
@@ -201,13 +228,14 @@
       const password=uPassword.value;
       if(!email){ alert('البريد مطلوب'); return; }
       try{
+        const scope=getBuildingScope();
         if(!CURRENT_ID){
           if(!password) return alert('كلمة المرور مطلوبة عند إنشاء مستخدم جديد');
           const res=await functions.httpsCallable('adminCreateUser')({ email, password, profile:{
             displayName:uName.value.trim(),
             phone:uPhone.value.trim(),
             role:uRole.value,
-            buildingScope:(uBuildings.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+            buildingScope:scope,
             skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
             isActive:!!uActive.checked
           }});
@@ -217,7 +245,7 @@
             displayName:uName.value.trim(),
             phone:uPhone.value.trim(),
             role:uRole.value,
-            buildingScope:(uBuildings.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+            buildingScope:scope,
             skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean),
             isActive:!!uActive.checked
           }});
@@ -239,13 +267,11 @@
       whoami.textContent = (snap.data()?.displayName || u.email) + ' • ' + role;
       if(role!=='admin'){
         alert('هذه الصفحة للمشرف فقط');
-        // بإمكانك تحويله لصفحة دخول إن وجدت: location.href='login.html';
       }
     }
 
     auth.onAuthStateChanged(async (u)=>{
       if(!u){
-        // استخدم أي طريقة دخول تعجبك (يفضل Email/Password)
         whoami.textContent = 'غير مسجل دخول';
         alert('سجّل دخول أدمن لاستخدام هذه الصفحة');
         return;
