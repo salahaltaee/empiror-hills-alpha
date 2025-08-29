@@ -1,20 +1,15 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>إدارة المستخدمين – Emperor Hills Alpha</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{ --shadow:0 10px 30px #00000012; }
     body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
-    .card{ border-radius:16px; box-shadow:var(--shadow) }
-    .table-fixed{ table-layout:fixed }
-    .badge-role{ font-weight:700 }
+    .card{ border-radius:16px; box-shadow:0 8px 24px #00000012 }
     .btn-pill{ border-radius:999px }
-    .spinner{ display:none }
-    .toast-container{ position:fixed; inset-block-start:12px; inset-inline-end:12px; z-index:1080 }
   </style>
 </head>
 <body>
@@ -22,126 +17,71 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
         <span class="navbar-brand fw-bold">إدارة المستخدمين</span>
-        <span class="text-muted small">لا يتطلب تسجيل دخول</span>
+        <span id="who" class="text-muted small"></span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <a class="btn btn-outline-secondary btn-sm btn-pill" href="index.html">دخول</a>
+        <button id="logout" class="btn btn-outline-danger btn-sm btn-pill">خروج</button>
       </div>
     </div>
   </nav>
 
   <main class="container py-3">
-    <!-- نموذج إضافة/تعديل -->
     <div class="card p-3 mb-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="m-0">إضافة / تعديل مستخدم</h5>
-        <div class="d-flex align-items-center gap-2">
-          <div class="spinner-border spinner" id="spinner" role="status" style="width:20px;height:20px"><span class="visually-hidden">Loading…</span></div>
-        </div>
-      </div>
-
-      <form id="userForm" class="row g-2">
-        <div class="col-md-3">
-          <label class="form-label">البريد <span class="text-danger">*</span></label>
-          <input id="uEmail" type="email" class="form-control" placeholder="name@example.com" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">كلمة المرور <span class="text-danger">*</span> <span class="text-muted small">(مطلوبة عند الإنشاء)</span></label>
-          <input id="uPassword" type="password" class="form-control" placeholder="••••••••" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">الاسم</label>
-          <input id="uName" class="form-control" placeholder="الاسم الكامل" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">الهاتف</label>
-          <input id="uPhone" class="form-control" placeholder="07XXXXXXXX" />
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">الدور</label>
-          <select id="uRole" class="form-select">
+      <h6>إضافة / تعديل بيانات مستخدم (Firestore)</h6>
+      <div class="row g-2">
+        <div class="col-md-3"><input id="email" type="email" class="form-control" placeholder="name@example.com"/></div>
+        <div class="col-md-3"><input id="name" class="form-control" placeholder="الاسم"/></div>
+        <div class="col-md-2"><input id="phone" class="form-control" placeholder="الهاتف"/></div>
+        <div class="col-md-2">
+          <select id="role" class="form-select">
             <option value="tech">Technician</option>
             <option value="ops">Ops</option>
             <option value="admin">Admin</option>
           </select>
         </div>
-
-        <!-- Check List لنطاق البنايات -->
-        <div class="col-md-5">
-          <label class="form-label">نطاق البنايات</label>
-          <div class="d-flex gap-3 flex-wrap pt-2">
-            <div class="form-check">
-              <input id="bC2" class="form-check-input" type="checkbox" value="C2">
-              <label class="form-check-label" for="bC2">C2</label>
-            </div>
-            <div class="form-check">
-              <input id="bC4" class="form-check-input" type="checkbox" value="C4">
-              <label class="form-check-label" for="bC4">C4</label>
-            </div>
-            <div class="form-check">
-              <input id="bC6" class="form-check-input" type="checkbox" value="C6">
-              <label class="form-check-label" for="bC6">C6</label>
-            </div>
-          </div>
+        <div class="col-md-2 d-flex align-items-center">
+          <div class="form-check form-switch"><input id="active" class="form-check-input" type="checkbox" checked><label class="form-check-label ms-2" for="active">فعّال</label></div>
         </div>
-
-        <div class="col-md-2 d-flex align-items-end">
-          <div class="form-check form-switch">
-            <input id="uActive" class="form-check-input" type="checkbox" checked>
-            <label class="form-check-label" for="uActive">فعّال</label>
+        <div class="col-md-6">
+          <label class="form-label">البنايات</label>
+          <div class="d-flex gap-3">
+            <div class="form-check"><input id="bC2" class="form-check-input" type="checkbox" value="C2"><label class="form-check-label" for="bC2">C2</label></div>
+            <div class="form-check"><input id="bC4" class="form-check-input" type="checkbox" value="C4"><label class="form-check-label" for="bC4">C4</label></div>
+            <div class="form-check"><input id="bC6" class="form-check-input" type="checkbox" value="C6"><label class="form-check-label" for="bC6">C6</label></div>
           </div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">مهارات</label>
-          <input id="uSkills" class="form-control" placeholder="كهرباء، سباكة..." />
         </div>
         <div class="col-12 d-flex gap-2">
-          <button id="btnSave" type="button" class="btn btn-primary btn-pill">حفظ (إنشاء/تحديث)</button>
-          <button id="btnNew" type="button" class="btn btn-outline-secondary btn-pill">مستخدم جديد</button>
-          <div id="formMsg" class="ms-2 small text-muted"></div>
+          <button id="save" class="btn btn-primary btn-pill">حفظ</button>
+          <button id="new" class="btn btn-light btn-pill">جديد</button>
         </div>
-      </form>
-      <div class="small text-muted mt-2">
-        هذه الصفحة تعمل بدون تسجيل دخول وتعتمد على دوال Callable فقط.
       </div>
     </div>
 
-    <!-- جدول المستخدمين -->
     <div class="card p-3">
       <div class="d-flex align-items-center justify-content-between mb-2">
-        <h5 class="m-0">المستخدمون</h5>
-        <div class="input-group" style="max-width:360px">
+        <h6 class="m-0">المستخدمون</h6>
+        <div class="input-group" style="max-width:320px">
           <span class="input-group-text">بحث</span>
-          <input id="search" class="form-control" placeholder="اسم / بريد / دور" />
+          <input id="q" class="form-control" />
         </div>
       </div>
       <div class="table-responsive">
-        <table class="table table-fixed align-middle">
-          <thead>
-            <tr>
-              <th style="width:20%">UID</th>
-              <th style="width:18%">الاسم</th>
-              <th style="width:20%">البريد</th>
-              <th style="width:12%">الهاتف</th>
-              <th style="width:10%">الدور</th>
-              <th style="width:10%">النطاق</th>
-              <th style="width:6%">حالة</th>
-              <th style="width:10%" class="text-end">إجراءات</th>
-            </tr>
-          </thead>
+        <table class="table align-middle">
+          <thead><tr><th>UID</th><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الدور</th><th>النطاق</th><th>حالة</th><th class="text-end">إجراءات</th></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
     </div>
   </main>
 
-  <!-- Toasts -->
-  <div class="toast-container" id="toasts"></div>
-
-  <!-- SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 
   <script>
-    // ===== Firebase Init =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -149,135 +89,61 @@
       storageBucket: "empiror-hills-alpha.appspot.com",
     };
     firebase.initializeApp(firebaseConfig);
-    const functions = firebase.app().functions('us-central1');
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // ===== عناصر =====
-    const uEmail=document.getElementById('uEmail');
-    const uPassword=document.getElementById('uPassword');
-    const uName=document.getElementById('uName');
-    const uPhone=document.getElementById('uPhone');
-    const uRole=document.getElementById('uRole');
-    const uActive=document.getElementById('uActive');
-    const uSkills=document.getElementById('uSkills');
-    const btnSave=document.getElementById('btnSave');
-    const btnNew=document.getElementById('btnNew');
-    const tbody=document.getElementById('tbody');
-    const search=document.getElementById('search');
-    const formMsg=document.getElementById('formMsg');
-    const spinner=document.getElementById('spinner');
-    const toasts=document.getElementById('toasts');
-    const bC2=document.getElementById('bC2');
-    const bC4=document.getElementById('bC4');
-    const bC6=document.getElementById('bC6');
+    let CURRENT=null; const tbody=document.getElementById('tbody'); const who=document.getElementById('who');
 
-    let USERS=[]; let CURRENT_ID=null; // uid قيد التعديل
+    function scopeOut(){ const a=[]; if(bC2.checked)a.push('C2'); if(bC4.checked)a.push('C4'); if(bC6.checked)a.push('C6'); return a; }
+    function scopeIn(a=[]){ bC2.checked=a.includes('C2'); bC4.checked=a.includes('C4'); bC6.checked=a.includes('C6'); }
+    function reset(){ CURRENT=null; email.value=''; name.value=''; phone.value=''; role.value='tech'; active.checked=true; scopeIn([]); }
+    new.onclick=reset;
 
-    // ===== Utils =====
-    function showSpinner(v){ if(!spinner) return; spinner.style.display=v?'inline-block':'none'; }
-    function toast(msg, type='success'){
-      const el=document.createElement('div');
-      el.className=`toast align-items-center text-bg-${type} border-0`;
-      el.role='alert'; el.ariaLive='assertive'; el.ariaAtomic='true';
-      el.innerHTML=`<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
-      toasts.appendChild(el); new bootstrap.Toast(el, {delay:2500}).show();
-      el.addEventListener('hidden.bs.toast', ()=> el.remove());
-    }
-
-    function getBuildingScope(){ const a=[]; if(bC2.checked) a.push('C2'); if(bC4.checked) a.push('C4'); if(bC6.checked) a.push('C6'); return a; }
-    function setBuildingScope(a=[]){ bC2.checked=a.includes('C2'); bC4.checked=a.includes('C4'); bC6.checked=a.includes('C6'); }
-
-    function resetForm(){ CURRENT_ID=null; uEmail.value=''; uPassword.value=''; uName.value=''; uPhone.value=''; uRole.value='tech'; setBuildingScope([]); uActive.checked=true; uSkills.value=''; formMsg.textContent=''; }
-
-    btnNew.addEventListener('click', resetForm);
-
-    function row(u, id){
+    function row(u){
       const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td class="text-truncate" title="${id}">${id}</td>
-        <td class="text-truncate" title="${u.displayName||''}">${u.displayName||''}</td>
-        <td class="text-truncate" title="${u.email||''}">${u.email||''}</td>
-        <td class="text-truncate" title="${u.phone||''}">${u.phone||''}</td>
-        <td><span class="badge text-bg-light badge-role">${u.role||''}</span></td>
-        <td class="text-truncate" title="${(u.buildingScope||[]).join(',')}">${(u.buildingScope||[]).join(',')}</td>
-        <td>${u.isActive? '✅':'⛔️'}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary me-1">تعديل</button>
-          <button class="btn btn-sm btn-outline-danger">حذف</button>
-        </td>`;
-      const [btnEdit, btnDel]=tr.querySelectorAll('button');
-      btnEdit.addEventListener('click', ()=>{
-        CURRENT_ID=id;
-        uEmail.value=u.email||''; uPassword.value=''; uName.value=u.displayName||''; uPhone.value=u.phone||'';
-        uRole.value=u.role||'tech'; setBuildingScope(u.buildingScope||[]); uActive.checked=!!u.isActive; uSkills.value=(u.skills||[]).join(',');
-        window.scrollTo({top:0, behavior:'smooth'});
-      });
-      btnDel.addEventListener('click', async ()=>{
-        if(!confirm('متأكد من الحذف؟')) return;
-        try{ showSpinner(true); await functions.httpsCallable('adminDeleteUser')({ uid:id }); toast('تم الحذف','danger'); await loadUsers(); }
-        catch(e){ alert('تعذر الحذف: '+(e.message||e)); }
-        finally{ showSpinner(false); }
-      });
+      tr.innerHTML=`<td>${u.id}</td><td>${u.displayName||''}</td><td>${u.email||''}</td><td>${u.phone||''}</td><td>${u.role||''}</td><td>${(u.buildingScope||[]).join(',')}</td><td>${u.isActive?'✅':'⛔️'}</td><td class='text-end'><button class='btn btn-sm btn-outline-primary me-1'>تعديل</button><button class='btn btn-sm btn-outline-danger'>حذف</button></td>`;
+      const [e,d]=tr.querySelectorAll('button');
+      e.onclick=()=>{ CURRENT=u.id; email.value=u.email||''; name.value=u.displayName||''; phone.value=u.phone||''; role.value=u.role||'tech'; active.checked=!!u.isActive; scopeIn(u.buildingScope||[]); window.scrollTo({top:0,behavior:'smooth'}); };
+      d.onclick=async()=>{ if(!confirm('حذف؟'))return; await db.collection('users').doc(u.id).delete(); load(); };
       return tr;
     }
 
-    function render(){
-      const q=(search.value||'').toLowerCase();
+    async function load(){
+      who.textContent = auth.currentUser? (auth.currentUser.displayName||auth.currentUser.email):'';
+      const s=await db.collection('users').orderBy('displayName').get();
+      const users=s.docs.map(d=>({id:d.id, ...d.data()}));
+      render(users);
+    }
+
+    function render(users){
+      const qv=(q.value||'').toLowerCase();
       tbody.innerHTML='';
-      USERS.filter(u=> !q || (u.displayName||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.role||'').toLowerCase().includes(q))
-           .forEach(u=> tbody.appendChild(row(u, u.id)));
+      users.filter(u=> !qv || (u.displayName||'').toLowerCase().includes(qv) || (u.email||'').toLowerCase().includes(qv) || (u.role||'').toLowerCase().includes(qv))
+           .forEach(u=> tbody.appendChild(row(u)));
     }
 
-    async function loadUsers(){
-      showSpinner(true);
-      try{
-        // القراءة عبر دالة Callable بدلاً من Firestore مباشرة (حتى لا نحتاج Auth)
-        const res = await functions.httpsCallable('adminListUsers')();
-        USERS = (res?.data?.users || []).map(u=> ({...u, id:u.id}));
-        render();
-      } catch(e){
-        alert('تعذر تحميل المستخدمين: '+(e.message||e));
-      } finally{ showSpinner(false); }
-    }
+    q.oninput=()=>load();
 
-    function validate(){
-      const email=uEmail.value.trim();
-      if(!email) return 'البريد مطلوب';
-      if(!CURRENT_ID && (uPassword.value||'').length<6) return 'كلمة المرور مطلوبة (6 أحرف على الأقل)';
-      return null;
-    }
+    save.onclick = async ()=>{
+      const data={
+        displayName:name.value.trim(),
+        email:email.value.trim(),
+        phone:phone.value.trim(),
+        role:role.value,
+        buildingScope:scopeOut(),
+        isActive:!!active.checked,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      if(!CURRENT){
+        const doc = await db.collection('users').add(data); CURRENT=doc.id;
+      } else {
+        await db.collection('users').doc(CURRENT).set(data,{merge:true});
+      }
+      await load();
+    };
 
-    async function saveUser(){
-      const err = validate(); if(err){ alert(err); return; }
-      formMsg.textContent=''; showSpinner(true);
-      const email=uEmail.value.trim(); const password=uPassword.value; const scope=getBuildingScope();
-      try{
-        if(!CURRENT_ID){
-          const res=await functions.httpsCallable('adminCreateUser')({ email, password, profile:{
-            displayName:uName.value.trim(), phone:uPhone.value.trim(), role:uRole.value,
-            buildingScope:scope, skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean), isActive:!!uActive.checked
-          }});
-          CURRENT_ID=res.data.uid; toast('تم إنشاء المستخدم');
-        } else {
-          await functions.httpsCallable('adminUpdateUser')({ uid:CURRENT_ID, email, password: password||undefined, profile:{
-            displayName:uName.value.trim(), phone:uPhone.value.trim(), role:uRole.value,
-            buildingScope:scope, skills:(uSkills.value||'').split(',').map(s=>s.trim()).filter(Boolean), isActive:!!uActive.checked
-          }});
-          toast('تم تحديث بيانات المستخدم');
-        }
-        uPassword.value=''; await loadUsers();
-      } catch(e){
-        const msg = e?.message || e?.code || 'Unknown error';
-        alert('خطأ: '+msg);
-      } finally{ showSpinner(false); }
-    }
-
-    btnSave.addEventListener('click', saveUser);
-    search.addEventListener('input', render);
-
-    // بدء التحميل مباشرة بدون أي Auth
-    (async function(){
-      await loadUsers();
-    })();
+    auth.onAuthStateChanged(u=>{ if(!u) who.textContent='غير مسجل'; load(); });
+    logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
   </script>
 </body>
 </html>
