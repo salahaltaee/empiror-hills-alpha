@@ -3,146 +3,227 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>إدارة المستخدمين – Emperor Hills Alpha</title>
+  <title>إدارة المستخدمين</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
     .card{ border-radius:16px; box-shadow:0 8px 24px #00000012 }
     .btn-pill{ border-radius:999px }
+    .grid-4{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px }
   </style>
 </head>
 <body>
   <nav class="navbar bg-white border-bottom shadow-sm">
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
-        <span class="navbar-brand fw-bold">إدارة المستخدمين</span>
-        <span id="who" class="text-muted small"></span>
+        <span class="fw-bold">إدارة المستخدمين</span>
+        <span id="who" class="small text-muted"></span>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <a class="btn btn-outline-secondary btn-sm btn-pill" href="index.html">دخول</a>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary btn-sm btn-pill" href="Admin.html">لوحة الإدارة</a>
         <button id="logout" class="btn btn-outline-danger btn-sm btn-pill">خروج</button>
       </div>
     </div>
   </nav>
 
   <main class="container py-3">
+
+    <!-- إضافة/تعديل مستخدم -->
     <div class="card p-3 mb-3">
-      <h6>إضافة / تعديل بيانات مستخدم (Firestore)</h6>
+      <h6 class="mb-2">إضافة / تعديل مستخدم</h6>
       <div class="row g-2">
-        <div class="col-md-3"><input id="email" type="email" class="form-control" placeholder="name@example.com"/></div>
-        <div class="col-md-3"><input id="name" class="form-control" placeholder="الاسم"/></div>
-        <div class="col-md-2"><input id="phone" class="form-control" placeholder="الهاتف"/></div>
-        <div class="col-md-2">
-          <select id="role" class="form-select">
+        <div class="col-md-3">
+          <label class="form-label">البريد *</label>
+          <input id="uEmail" type="email" class="form-control" placeholder="name@example.com">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">كلمة المرور * <span class="text-muted small">(مطلوبة عند الإنشاء فقط)</span></label>
+          <input id="uPass" type="password" class="form-control" placeholder="••••••••">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">الاسم (اختياري)</label>
+          <input id="uName" class="form-control" placeholder="الاسم الكامل">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">الهاتف (اختياري)</label>
+          <input id="uPhone" class="form-control" placeholder="07XXXXXXXX">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">الدور</label>
+          <select id="uRole" class="form-select">
             <option value="tech">Technician</option>
-            <option value="ops">Ops</option>
             <option value="admin">Admin</option>
+            <option value="owner">Owner</option>
+            <option value="ops">Ops</option>
           </select>
         </div>
-        <div class="col-md-2 d-flex align-items-center">
-          <div class="form-check form-switch"><input id="active" class="form-check-input" type="checkbox" checked><label class="form-check-label ms-2" for="active">فعّال</label></div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">البنايات</label>
-          <div class="d-flex gap-3">
+        <div class="col-md-5">
+          <label class="form-label">نطاق البنايات</label>
+          <div class="d-flex gap-3 pt-2">
             <div class="form-check"><input id="bC2" class="form-check-input" type="checkbox" value="C2"><label class="form-check-label" for="bC2">C2</label></div>
             <div class="form-check"><input id="bC4" class="form-check-input" type="checkbox" value="C4"><label class="form-check-label" for="bC4">C4</label></div>
             <div class="form-check"><input id="bC6" class="form-check-input" type="checkbox" value="C6"><label class="form-check-label" for="bC6">C6</label></div>
           </div>
         </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <div class="form-check form-switch">
+            <input id="uActive" class="form-check-input" type="checkbox" checked>
+            <label class="form-check-label" for="uActive">فعّال</label>
+          </div>
+        </div>
         <div class="col-12 d-flex gap-2">
-          <button id="save" class="btn btn-primary btn-pill">حفظ</button>
-          <button id="new" class="btn btn-light btn-pill">جديد</button>
+          <button id="btnSave" class="btn btn-primary btn-pill">حفظ (إنشاء/تحديث)</button>
+          <button id="btnNew" class="btn btn-light btn-pill">جديد</button>
+          <span id="formMsg" class="small text-muted"></span>
         </div>
       </div>
     </div>
 
-    <div class="card p-3">
-      <div class="d-flex align-items-center justify-content-between mb-2">
+    <!-- جدول المستخدمين -->
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="m-0">المستخدمون</h6>
         <div class="input-group" style="max-width:320px">
           <span class="input-group-text">بحث</span>
-          <input id="q" class="form-control" />
+          <input id="qUser" class="form-control" placeholder="اسم / بريد / دور">
         </div>
       </div>
       <div class="table-responsive">
         <table class="table align-middle">
           <thead><tr><th>UID</th><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الدور</th><th>النطاق</th><th>حالة</th><th class="text-end">إجراءات</th></tr></thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tbodyUsers"></tbody>
         </table>
       </div>
     </div>
+
+    <!-- ملّاك الشقق -->
+    <div class="card p-3">
+      <h6 class="mb-2">بيانات ملّاك الشقق</h6>
+      <div class="row g-2">
+        <div class="col-md-2"><select id="oB" class="form-select"><option>C2</option><option>C4</option><option>C6</option></select></div>
+        <div class="col-md-2"><select id="oF" class="form-select"></select></div>
+        <div class="col-md-2"><select id="oU" class="form-select"></select></div>
+        <div class="col-md-3"><input id="oName" class="form-control" placeholder="اسم المالك"></div>
+        <div class="col-md-3"><input id="oPhone" class="form-control" placeholder="هاتف المالك"></div>
+        <div class="col-12 d-flex gap-2">
+          <button id="btnOwnerSave" class="btn btn-success btn-pill">حفظ بيانات المالك</button>
+          <span id="ownerMsg" class="small text-muted"></span>
+        </div>
+      </div>
+    </div>
+
   </main>
 
-  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
-      authDomain: "empiror-hills-alpha.firebaseapp.com",
-      projectId: "empiror-hills-alpha",
-      storageBucket: "empiror-hills-alpha.appspot.com",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    // Firebase
+    const cfg={apiKey:"AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",authDomain:"empiror-hills-alpha.firebaseapp.com",projectId:"empiror-hills-alpha",storageBucket:"empiror-hills-alpha.appspot.com"};
+    const app1=firebase.initializeApp(cfg);
+    const auth=firebase.auth(); const db=firebase.firestore();
 
-    let CURRENT=null; const tbody=document.getElementById('tbody'); const who=document.getElementById('who');
+    // تطبيق ثانوي لإنشاء حسابات بدون ما نغيّر جلسة الأدمن
+    const adminApp=firebase.initializeApp(cfg,'secondary');
+    const adminAuth=adminApp.auth();
 
-    function scopeOut(){ const a=[]; if(bC2.checked)a.push('C2'); if(bC4.checked)a.push('C4'); if(bC6.checked)a.push('C6'); return a; }
-    function scopeIn(a=[]){ bC2.checked=a.includes('C2'); bC4.checked=a.includes('C4'); bC6.checked=a.includes('C6'); }
-    function reset(){ CURRENT=null; email.value=''; name.value=''; phone.value=''; role.value='tech'; active.checked=true; scopeIn([]); }
-    new.onclick=reset;
+    // عناصر
+    const uEmail=document.getElementById('uEmail'), uPass=document.getElementById('uPass'), uName=document.getElementById('uName'), uPhone=document.getElementById('uPhone'), uRole=document.getElementById('uRole'), uActive=document.getElementById('uActive');
+    const bC2=document.getElementById('bC2'), bC4=document.getElementById('bC4'), bC6=document.getElementById('bC6');
+    const btnSave=document.getElementById('btnSave'), btnNew=document.getElementById('btnNew'), formMsg=document.getElementById('formMsg');
+    const tbodyUsers=document.getElementById('tbodyUsers'), qUser=document.getElementById('qUser'), who=document.getElementById('who');
 
-    function row(u){
+    let USERS=[]; let CURRENT_UID=null;
+
+    function scopeGet(){const a=[]; if(bC2.checked)a.push('C2'); if(bC4.checked)a.push('C4'); if(bC6.checked)a.push('C6'); return a;}
+    function scopeSet(a=[]){ bC2.checked=a.includes('C2'); bC4.checked=a.includes('C4'); bC6.checked=a.includes('C6'); }
+    function resetForm(){ CURRENT_UID=null; uEmail.value=''; uPass.value=''; uName.value=''; uPhone.value=''; uRole.value='tech'; uActive.checked=true; scopeSet([]); formMsg.textContent=''; }
+    btnNew.onclick=resetForm;
+
+    function rowUser(u){
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${u.id}</td><td>${u.displayName||''}</td><td>${u.email||''}</td><td>${u.phone||''}</td><td>${u.role||''}</td><td>${(u.buildingScope||[]).join(',')}</td><td>${u.isActive?'✅':'⛔️'}</td><td class='text-end'><button class='btn btn-sm btn-outline-primary me-1'>تعديل</button><button class='btn btn-sm btn-outline-danger'>حذف</button></td>`;
+      tr.innerHTML=`<td>${u.id}</td><td>${u.displayName||''}</td><td>${u.email||''}</td><td>${u.phone||''}</td><td>${u.role||''}</td><td>${(u.buildingScope||[]).join(',')}</td><td>${u.isActive?'✅':'⛔️'}</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1">تعديل</button><button class="btn btn-sm btn-outline-danger">تعطيل</button></td>`;
       const [e,d]=tr.querySelectorAll('button');
-      e.onclick=()=>{ CURRENT=u.id; email.value=u.email||''; name.value=u.displayName||''; phone.value=u.phone||''; role.value=u.role||'tech'; active.checked=!!u.isActive; scopeIn(u.buildingScope||[]); window.scrollTo({top:0,behavior:'smooth'}); };
-      d.onclick=async()=>{ if(!confirm('حذف؟'))return; await db.collection('users').doc(u.id).delete(); load(); };
+      e.onclick=()=>{ CURRENT_UID=u.id; uEmail.value=u.email||''; uName.value=u.displayName||''; uPhone.value=u.phone||''; uRole.value=u.role||'tech'; uActive.checked=!!u.isActive; scopeSet(u.buildingScope||[]); window.scrollTo({top:0,behavior:'smooth'}); };
+      d.onclick=async()=>{ if(!confirm('تعطيل المستخدم؟')) return; await db.collection('users').doc(u.id).set({isActive:false, updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); await loadUsers(); };
       return tr;
     }
 
-    async function load(){
-      who.textContent = auth.currentUser? (auth.currentUser.displayName||auth.currentUser.email):'';
+    function renderUsers(){
+      const q=(qUser.value||'').toLowerCase();
+      tbodyUsers.innerHTML='';
+      USERS.filter(u=>!q || (u.displayName||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.role||'').toLowerCase().includes(q))
+           .forEach(u=> tbodyUsers.appendChild(rowUser(u)));
+    }
+
+    async function loadUsers(){
       const s=await db.collection('users').orderBy('displayName').get();
-      const users=s.docs.map(d=>({id:d.id, ...d.data()}));
-      render(users);
+      USERS=s.docs.map(d=>({id:d.id,...d.data()}));
+      renderUsers();
     }
 
-    function render(users){
-      const qv=(q.value||'').toLowerCase();
-      tbody.innerHTML='';
-      users.filter(u=> !qv || (u.displayName||'').toLowerCase().includes(qv) || (u.email||'').toLowerCase().includes(qv) || (u.role||'').toLowerCase().includes(qv))
-           .forEach(u=> tbody.appendChild(row(u)));
-    }
-
-    q.oninput=()=>load();
-
-    save.onclick = async ()=>{
+    btnSave.onclick = async ()=>{
+      const email=uEmail.value.trim(); const pass=uPass.value;
+      if(!email){ formMsg.textContent='البريد مطلوب'; return; }
+      if(!CURRENT_UID && (!pass || pass.length<6)){ formMsg.textContent='كلمة المرور مطلوبة (6 أحرف على الأقل)'; return; }
       const data={
-        displayName:name.value.trim(),
-        email:email.value.trim(),
-        phone:phone.value.trim(),
-        role:role.value,
-        buildingScope:scopeOut(),
-        isActive:!!active.checked,
+        displayName:uName.value.trim(),
+        email,
+        phone:uPhone.value.trim(),
+        role:uRole.value,
+        buildingScope:scopeGet(),
+        isActive:!!uActive.checked,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
-      if(!CURRENT){
-        const doc = await db.collection('users').add(data); CURRENT=doc.id;
-      } else {
-        await db.collection('users').doc(CURRENT).set(data,{merge:true});
-      }
-      await load();
+      try{
+        if(!CURRENT_UID){
+          // إنشاء Auth عبر التطبيق الثانوي
+          const cred=await adminAuth.createUserWithEmailAndPassword(email, pass);
+          const uid=cred.user.uid;
+          await db.collection('users').doc(uid).set({...data, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+          await adminAuth.signOut();
+          CURRENT_UID=uid;
+          formMsg.textContent='تم إنشاء المستخدم';
+        }else{
+          await db.collection('users').doc(CURRENT_UID).set(data,{merge:true});
+          formMsg.textContent='تم التحديث';
+        }
+        uPass.value='';
+        await loadUsers();
+      }catch(e){ formMsg.textContent='خطأ: '+(e.message||e.code); }
     };
 
-    auth.onAuthStateChanged(u=>{ if(!u) who.textContent='غير مسجل'; load(); });
+    qUser.oninput=renderUsers;
+
+    // ====== الملاك ======
+    const oB=document.getElementById('oB'), oF=document.getElementById('oF'), oU=document.getElementById('oU'), oName=document.getElementById('oName'), oPhone=document.getElementById('oPhone'), ownerMsg=document.getElementById('ownerMsg');
+    function fillFloors(){ oF.innerHTML=''; for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='ط '+String(i).padStart(2,'0'); oF.appendChild(o);} }
+    function fillUnits(){ oU.innerHTML=''; ['A','B','C','D'].forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent='شقة '+x; oU.appendChild(o); }); }
+    fillFloors(); fillUnits();
+
+    async function loadOwner(){
+      const id=`${oB.value}_${oF.value}_${oU.value}`;
+      const doc=await db.collection('units').doc(id).get();
+      const d=doc.data()||{};
+      oName.value=d.ownerName||''; oPhone.value=d.ownerPhone||'';
+    }
+    oB.onchange=loadOwner; oF.onchange=loadOwner; oU.onchange=loadOwner;
+
+    btnOwnerSave.onclick = async ()=>{
+      const id=`${oB.value}_${oF.value}_${oU.value}`;
+      await db.collection('units').doc(id).set({
+        building:oB.value, floor:Number(oF.value), unit:oU.value,
+        unitLabel:`${oB.value}/${oF.value}/${oU.value}`,
+        ownerName:oName.value.trim(), ownerPhone:oPhone.value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+      ownerMsg.textContent='تم الحفظ';
+    };
+
+    // جلسة الأدمن
+    auth.onAuthStateChanged(async (u)=>{ who.textContent=u?(u.displayName||u.email):''; if(!u) location.href='index.html'; await loadUsers(); await loadOwner(); });
     logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
   </script>
 </body>
