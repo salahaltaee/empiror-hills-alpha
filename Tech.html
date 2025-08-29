@@ -135,4 +135,38 @@
       const doc = await ref.get();
       const data = doc.data()||{};
       setChecks('singlePts', data.singlePts||[]);
-      setCheck
+      setChecks('doublePts', data.doublePts||[]);
+      setChecks('triplePts', data.triplePts||[]);
+      setChecks('remotes', data.remotes||[]);
+      document.getElementById('ctlScreen').checked = !!data.ctlScreen;
+      document.getElementById('lock103').checked = !!data.lock103;
+    }
+
+    building.onchange=loadCurrent; floor.onchange=loadCurrent; unit.onchange=loadCurrent;
+
+    save.onclick = async ()=>{
+      const u = auth.currentUser; if(!u) return alert('سجّل دخول');
+      const id = `${building.value}_${floor.value}_${unit.value}`;
+      const ref = db.collection('unitInspections').doc(id);
+      const payload = {
+        building: building.value,
+        floor: Number(floor.value),
+        unit: unit.value,
+        unitLabel: `${building.value}/${floor.value}/${unit.value}`,
+        singlePts: getChecks('singlePts'),
+        doublePts: getChecks('doublePts'),
+        triplePts: getChecks('triplePts'),
+        ctlScreen: document.getElementById('ctlScreen').checked,
+        remotes: getChecks('remotes'),
+        lock103: document.getElementById('lock103').checked,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        tech: { uid: u.uid, name: u.displayName||u.email }
+      };
+      await ref.set(payload, {merge:true});
+      msg.textContent='تم الحفظ';
+    };
+
+    logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
+  </script>
+</body>
+</html>
