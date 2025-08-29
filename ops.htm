@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>لوحة العمليات – Emperor Hills Alpha</title>
+  <title>لوحة العمليات (Ops)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -15,16 +15,13 @@
 <body>
   <nav class="navbar bg-white border-bottom shadow-sm">
     <div class="container-fluid">
-      <div class="d-flex align-items-center gap-2">
-        <span class="fw-bold">لوحة العمليات</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
-      </div>
+      <span class="fw-bold">لوحة العمليات</span>
+      <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
     </div>
   </nav>
 
   <main class="container py-3">
+    <!-- إنشاء بلاغ -->
     <div class="card p-3 mb-3">
       <h6>إنشاء بلاغ</h6>
       <div class="row g-2">
@@ -35,65 +32,79 @@
         <div class="col-md-2"><select id="prio" class="form-select"><option value="P2">P2</option><option value="P1">P1</option></select></div>
         <div class="col-md-1 d-grid"><button id="create" class="btn btn-primary btn-pill">إنشاء</button></div>
       </div>
+      <div class="small text-muted mt-2">بعد الموافقة من الأدمن وتحديد الفني ستظهر المهمة في لوحة الفني.</div>
     </div>
 
+    <!-- البلاغات المفتوحة -->
+    <div class="card p-3 mb-3">
+      <h6>بلاغات مفتوحة</h6>
+      <div id="openList" class="row g-2"></div>
+    </div>
+
+    <!-- البلاغات المعالجة -->
+    <div class="card p-3 mb-3">
+      <h6>بلاغات مُعالَجة</h6>
+      <div id="doneList" class="row g-2"></div>
+    </div>
+
+    <!-- تواصل -->
     <div class="card p-3">
-      <h6>البلاغات الأخيرة</h6>
-      <div id="list" class="row g-2"></div>
+      <h6>التواصل مع الفني / واتساب</h6>
+      <div class="row g-2">
+        <div class="col-md-2"><select id="cb" class="form-select"><option>C2</option><option>C4</option><option>C6</option></select></div>
+        <div class="col-md-2"><select id="cf" class="form-select"></select></div>
+        <div class="col-md-2"><select id="cu" class="form-select"></select></div>
+        <div class="col-md-3"><input id="cphone" class="form-control" placeholder="رقم العميل (اختياري)"></div>
+        <div class="col-md-3 d-grid"><button id="btnWA" class="btn btn-success btn-pill">إرسال واتساب</button></div>
+      </div>
     </div>
   </main>
 
-  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
-      authDomain: "empiror-hills-alpha.firebaseapp.com",
-      projectId: "empiror-hills-alpha",
-      storageBucket: "empiror-hills-alpha.appspot.com",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const cfg={apiKey:"AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",authDomain:"empiror-hills-alpha.firebaseapp.com",projectId:"empiror-hills-alpha",storageBucket:"empiror-hills-alpha.appspot.com"};
+    firebase.initializeApp(cfg);
+    const auth=firebase.auth(), db=firebase.firestore();
 
-    function fill(){ 
-      f.innerHTML=''; for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='ط '+i; f.appendChild(o); }
-      u.innerHTML=''; ['A','B','C','D'].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent='شقة '+s; u.appendChild(o);});
+    function fill(selF, selU){ 
+      selF.innerHTML=''; for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='ط '+i; selF.appendChild(o);}
+      selU.innerHTML=''; ['A','B','C','D'].forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent='شقة '+x; selU.appendChild(o); });
     }
-    fill();
+    fill(f,u); fill(cf,cu);
 
     function card(t){
-      const div=document.createElement('div');
-      div.className='col-12 col-md-6 col-lg-4';
+      const div=document.createElement('div'); div.className='col-12 col-md-6 col-lg-4';
       div.innerHTML=`<div class="card p-3 h-100">
         <div class="d-flex justify-content-between">
           <span class="badge ${t.priority==='P1'?'text-bg-danger':'text-bg-warning'}">${t.priority}</span>
-          <span class="small text-muted">${new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toLocaleString('ar-IQ')}</span>
+          <small class="text-muted">${new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toLocaleString('ar-IQ')}</small>
         </div>
         <div class="fw-bold">${t.building}/${t.floor}/${t.unit}</div>
         <div class="small">${t.description||''}</div>
+        <div class="small text-muted mt-2">الحالة: ${t.status}</div>
       </div>`;
       return div;
     }
 
     async function load(){
-      list.innerHTML='';
-      const s=await db.collection('tickets').orderBy('createdAt','desc').limit(24).get();
-      s.forEach(d=> list.appendChild(card({id:d.id,...d.data()})));
+      openList.innerHTML=''; doneList.innerHTML='';
+      const openSnap=await db.collection('tickets').where('status','in',['new','approved','assigned','in_progress']).orderBy('createdAt','desc').limit(30).get();
+      const doneSnap=await db.collection('tickets').where('status','==','completed').orderBy('completedAt','desc').limit(30).get();
+      openSnap.forEach(d=> openList.appendChild(card({id:d.id,...d.data()})));
+      doneSnap.forEach(d=> doneList.appendChild(card({id:d.id,...d.data()})));
     }
 
     create.onclick = async ()=>{
-      const t={
-        building:b.value, floor:Number(f.value), unit:u.value,
-        code:`T-${Date.now()}`, priority: prio.value, description:desc.value.trim(),
-        status:'new', createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      await db.collection('tickets').add(t);
-      desc.value=''; await load();
+      const t={ building:b.value, floor:Number(f.value), unit:u.value, description:desc.value.trim(), priority: prio.value, status:'new', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+      await db.collection('tickets').add(t); desc.value=''; load();
+    };
+
+    btnWA.onclick = ()=>{
+      const txt = `لدينا مشكلة في الوحدة ${cb.value}/${cf.value}/${cu.value}${cphone.value? '، هاتف العميل: '+cphone.value : ''}`;
+      window.open('https://wa.me/9647771003004?text='+encodeURIComponent(txt),'_blank');
     };
 
     auth.onAuthStateChanged(u=>{ if(!u) location.href='index.html'; else load(); });
