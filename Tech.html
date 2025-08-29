@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>لوحة الفني – Emperor Hills Alpha</title>
+  <title>لوحة الفني</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
     .card{ border-radius:16px; box-shadow:0 8px 24px #00000012 }
+    .unit-btn{ min-width:64px }
     .btn-pill{ border-radius:999px }
     .checkbox-tile{ border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff }
   </style>
@@ -18,154 +19,170 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
         <span class="fw-bold">لوحة الفني</span>
-        <select id="building" class="form-select form-select-sm" style="width:120px">
-          <option value="C2">C2</option><option value="C4">C4</option><option value="C6">C6</option>
-        </select>
-        <select id="floor" class="form-select form-select-sm" style="width:120px"></select>
-        <select id="unit" class="form-select form-select-sm" style="width:140px"></select>
+        <select id="building" class="form-select form-select-sm" style="width:120px"><option>C2</option><option>C4</option><option>C6</option></select>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <span id="who" class="text-muted small"></span>
+        <span id="who" class="small text-muted"></span>
         <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
       </div>
     </div>
   </nav>
 
   <main class="container py-3">
+
+    <!-- شبكة الشقق -->
     <div class="card p-3 mb-3">
-      <h6 class="mb-2">قائمة فحص الوحدة</h6>
+      <h6>اختر الشقة</h6>
+      <div id="grid" class="row g-2"></div>
+    </div>
+
+    <!-- الفحص -->
+    <div class="card p-3 mb-3" id="inspectCard" style="display:none">
+      <div class="d-flex justify-content-between align-items-center">
+        <h6 class="m-0">قائمة فحص: <span id="unitLabel"></span></h6>
+        <button id="btnWA" class="btn btn-sm btn-success btn-pill">طلب مواد (واتساب)</button>
+      </div>
+      <hr>
       <div class="row g-3">
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">1) نقطة أحادية ×5</div>
-            <div class="d-flex flex-wrap gap-2 mt-2" id="singlePts"></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">2) نقطة ثنائية ×1</div>
-            <div class="d-flex gap-2 mt-2" id="doublePts"></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">3) نقطة ثلاثية ×9</div>
-            <div class="d-flex flex-wrap gap-2 mt-2" id="triplePts"></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">4) شاشة تحكم</div>
-            <div class="form-check mt-2"><input id="ctlScreen" class="form-check-input" type="checkbox"> <label class="form-check-label" for="ctlScreen">تم التحقق</label></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">5) ريموت تحكم بالسبلت ×4</div>
-            <div class="d-flex flex-wrap gap-2 mt-2" id="remotes"></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="checkbox-tile">
-            <div class="fw-bold">6) قفل الباب 103</div>
-            <div class="form-check mt-2"><input id="lock103" class="form-check-input" type="checkbox"> <label class="form-check-label" for="lock103">تم التحقق</label></div>
-          </div>
-        </div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">1) نقطة أحادية ×5</div><div id="singlePts" class="d-flex flex-wrap gap-2 mt-2"></div></div></div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">2) نقطة ثنائية ×1</div><div id="doublePts" class="d-flex gap-2 mt-2"></div></div></div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">3) نقطة ثلاثية ×9</div><div id="triplePts" class="d-flex flex-wrap gap-2 mt-2"></div></div></div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">4) شاشة تحكم</div><div class="form-check mt-2"><input id="ctlScreen" class="form-check-input" type="checkbox"><label class="form-check-label ms-2" for="ctlScreen">تم التحقق</label></div></div></div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">5) ريموت تحكم بالسبلت ×4</div><div id="remotes" class="d-flex flex-wrap gap-2 mt-2"></div></div></div>
+        <div class="col-md-6"><div class="checkbox-tile"><div class="fw-bold">6) قفل الباب 103</div><div class="form-check mt-2"><input id="lock103" class="form-check-input" type="checkbox"><label class="form-check-label ms-2" for="lock103">تم التحقق</label></div></div></div>
       </div>
       <div class="d-flex gap-2 mt-3">
-        <button id="save" class="btn btn-success btn-pill">حفظ الحالة</button>
-        <span id="msg" class="small text-muted"></span>
+        <button id="btnSave" class="btn btn-primary btn-pill">حفظ الحالة</button>
+        <span id="iMsg" class="small text-muted"></span>
+        <span class="ms-auto small">المتبقي في البناية: <b id="remain">0</b> شقة</span>
       </div>
     </div>
+
+    <!-- الطلبات المعينة للفني -->
+    <div class="card p-3">
+      <h6>طلبات الصيانة المسندة إليّ</h6>
+      <div id="tickets" class="row g-2"></div>
+    </div>
+
   </main>
 
-  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
-      authDomain: "empiror-hills-alpha.firebaseapp.com",
-      projectId: "empiror-hills-alpha",
-      storageBucket: "empiror-hills-alpha.appspot.com",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const cfg={apiKey:"AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",authDomain:"empiror-hills-alpha.firebaseapp.com",projectId:"empiror-hills-alpha",storageBucket:"empiror-hills-alpha.appspot.com"};
+    firebase.initializeApp(cfg);
+    const auth=firebase.auth(); const db=firebase.firestore();
 
-    const building = document.getElementById('building');
-    const floor = document.getElementById('floor');
-    const unit = document.getElementById('unit');
-    const who = document.getElementById('who');
-    const msg = document.getElementById('msg');
+    const who=document.getElementById('who'); const building=document.getElementById('building'); const grid=document.getElementById('grid');
+    const inspectCard=document.getElementById('inspectCard'); const unitLabel=document.getElementById('unitLabel'); const iMsg=document.getElementById('iMsg'); const remain=document.getElementById('remain');
+    let cur={b:'C2', f:1, u:'A'};
 
-    function fillFloors(){ floor.innerHTML=''; for(let f=1; f<=16; f++){ const o=document.createElement('option'); o.value=f; o.textContent='طابق '+String(f).padStart(2,'0'); floor.appendChild(o); } }
-    function fillUnits(){ unit.innerHTML=''; ['A','B','C','D'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent='شقة '+u; unit.appendChild(o); }); }
-    fillFloors(); fillUnits();
+    function unitId(b,f,u){ return `${b}_${f}_${u}`; }
+    function mkChecks(holderId, n){ const h=document.getElementById(holderId); h.innerHTML=''; for(let i=0;i<n;i++){ const id=holderId+'_'+i; h.insertAdjacentHTML('beforeend', `<div class="form-check"><input class="form-check-input" id="${id}" type="checkbox"><label class="form-check-label" for="${id}">${i+1}</label></div>`); } }
+    mkChecks('singlePts',5); mkChecks('doublePts',1); mkChecks('triplePts',9); mkChecks('remotes',4);
+    function setChecks(prefix, arr){ for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; el.checked=!!arr[i]; } }
+    function getChecks(prefix){ const a=[]; for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; a.push(!!el.checked);} return a; }
 
-    function mkChecks(holderId, n){
-      const holder = document.getElementById(holderId);
-      holder.innerHTML='';
-      for(let i=0;i<n;i++){
-        const id=holderId+'_'+i;
-        holder.insertAdjacentHTML('beforeend', `<div class="form-check"><input class="form-check-input" id="${id}" type="checkbox"><label class="form-check-label" for="${id}">${i+1}</label></div>`);
+    function drawGrid(){
+      grid.innerHTML='';
+      for(let f=16; f>=1; f--){
+        ['A','B','C','D'].forEach(u=>{
+          const div=document.createElement('div'); div.className='col-3';
+          div.innerHTML=`<button class="btn btn-outline-secondary w-100 unit-btn">${f}/${u}</button>`;
+          const btn=div.querySelector('button');
+          btn.onclick=()=> openUnit(f,u);
+          grid.appendChild(div);
+        });
       }
     }
-    mkChecks('singlePts',5); mkChecks('doublePts',1); mkChecks('triplePts',9); mkChecks('remotes',4);
 
-    function setChecks(prefix, arr){ for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; el.checked=!!arr[i]; } }
-    function getChecks(prefix){ const arr=[]; for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; arr.push(!!el.checked); } return arr; }
-
-    auth.onAuthStateChanged(async (u)=>{
-      if(!u) return location.href='index.html';
-      who.textContent = u.displayName||u.email;
-      const snap = await db.collection('users').doc(u.uid).get();
-      const scope = snap.data()?.buildingScope||[];
-      if(scope.length) building.value = scope[0];
-      await loadCurrent();
-    });
-
-    async function loadCurrent(){
-      msg.textContent='';
-      const id = `${building.value}_${floor.value}_${unit.value}`;
-      const ref = db.collection('unitInspections').doc(id);
-      const doc = await ref.get();
-      const data = doc.data()||{};
-      setChecks('singlePts', data.singlePts||[]);
-      setChecks('doublePts', data.doublePts||[]);
-      setChecks('triplePts', data.triplePts||[]);
-      setChecks('remotes', data.remotes||[]);
-      document.getElementById('ctlScreen').checked = !!data.ctlScreen;
-      document.getElementById('lock103').checked = !!data.lock103;
+    async function openUnit(f,u){
+      cur={b:building.value, f, u};
+      unitLabel.textContent = `${cur.b}/${cur.f}/${cur.u}`;
+      inspectCard.style.display='';
+      await loadInspection();
+      await calcRemain();
     }
 
-    building.onchange=loadCurrent; floor.onchange=loadCurrent; unit.onchange=loadCurrent;
+    async function loadInspection(){
+      const id=unitId(cur.b,cur.f,cur.u);
+      const doc=await db.collection('unitInspections').doc(id).get();
+      const d=doc.data()||{};
+      setChecks('singlePts', d.singlePts||[]);
+      setChecks('doublePts', d.doublePts||[]);
+      setChecks('triplePts', d.triplePts||[]);
+      setChecks('remotes', d.remotes||[]);
+      document.getElementById('ctlScreen').checked=!!d.ctlScreen;
+      document.getElementById('lock103').checked=!!d.lock103;
+      iMsg.textContent='';
+    }
 
-    save.onclick = async ()=>{
-      const u = auth.currentUser; if(!u) return alert('سجّل دخول');
-      const id = `${building.value}_${floor.value}_${unit.value}`;
-      const ref = db.collection('unitInspections').doc(id);
-      const payload = {
-        building: building.value,
-        floor: Number(floor.value),
-        unit: unit.value,
-        unitLabel: `${building.value}/${floor.value}/${unit.value}`,
-        singlePts: getChecks('singlePts'),
-        doublePts: getChecks('doublePts'),
-        triplePts: getChecks('triplePts'),
-        ctlScreen: document.getElementById('ctlScreen').checked,
-        remotes: getChecks('remotes'),
-        lock103: document.getElementById('lock103').checked,
+    function score(d){
+      const s=(d.singlePts||[]).filter(Boolean).length+(d.doublePts||[]).filter(Boolean).length+(d.triplePts||[]).filter(Boolean).length+(d.remotes||[]).filter(Boolean).length+(d.ctlScreen?1:0)+(d.lock103?1:0);
+      return s;
+    }
+
+    async function calcRemain(){
+      const b=building.value; let remainCnt=0;
+      for(let f=1;f<=16;f++){ for(const u of ['A','B','C','D']){
+        const doc=await db.collection('unitInspections').doc(unitId(b,f,u)).get();
+        const d=doc.data(); const max=5+1+9+4+1+1;
+        if(!d || score(d)<max) remainCnt++;
+      }} 
+      remain.textContent = remainCnt;
+    }
+
+    document.getElementById('btnSave').onclick = async ()=>{
+      const u=auth.currentUser; if(!u) return;
+      const id=unitId(cur.b,cur.f,cur.u);
+      await db.collection('unitInspections').doc(id).set({
+        building:cur.b, floor:cur.f, unit:cur.u, unitLabel:`${cur.b}/${cur.f}/${cur.u}`,
+        singlePts:getChecks('singlePts'), doublePts:getChecks('doublePts'), triplePts:getChecks('triplePts'),
+        ctlScreen:ctlScreen.checked, remotes:getChecks('remotes'), lock103:lock103.checked,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        tech: { uid: u.uid, name: u.displayName||u.email }
-      };
-      await ref.set(payload, {merge:true});
-      msg.textContent='تم الحفظ';
+        tech:{uid:u.uid, name:u.displayName||u.email}
+      },{merge:true});
+      iMsg.textContent='تم الحفظ';
+      await calcRemain();
     };
 
+    // واتساب طلب مواد
+    document.getElementById('btnWA').onclick=()=>{
+      const txt=`أحتاج مواد للوحدة ${cur.b}/${cur.f}/${cur.u}`;
+      window.open('https://wa.me/9647771003004?text='+encodeURIComponent(txt),'_blank');
+    };
+
+    // تذاكر الصيانة المكلّفة لهذا الفني
+    const ticketsDiv=document.getElementById('tickets');
+    function tCard(t){
+      const div=document.createElement('div'); div.className='col-12 col-md-6 col-lg-4';
+      div.innerHTML=`<div class="card p-3 h-100">
+        <div class="d-flex justify-content-between"><span class="badge ${t.priority==='P1'?'text-bg-danger':'text-bg-warning'}">${t.priority||'P2'}</span><small class="text-muted">${new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toLocaleString('ar-IQ')}</small></div>
+        <div class="fw-bold">${t.building}/${t.floor}/${t.unit}</div>
+        <div class="small mb-2">${t.description||''}</div>
+        <div class="d-flex gap-2">
+          ${t.status==='assigned'?'<button class="btn btn-sm btn-primary">قبول/بدء</button>':''}
+          ${(t.status==='in_progress' || t.status==='assigned')?'<button class="btn btn-sm btn-success">إنجاز</button>':''}
+        </div>
+      </div>`;
+      const btns=div.querySelectorAll('button');
+      if(btns[0]) btns[0].onclick=async()=>{ await db.collection('tickets').doc(t.id).set({status:'in_progress', startedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); loadTickets(); };
+      if(btns[1]) btns[1].onclick=async()=>{ await db.collection('tickets').doc(t.id).set({status:'completed', completedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); loadTickets(); };
+      return div;
+    }
+
+    async function loadTickets(){
+      ticketsDiv.innerHTML='';
+      const u=auth.currentUser; if(!u) return;
+      const s=await db.collection('tickets').where('assignedTo.uid','==',u.uid).where('status','in',['assigned','in_progress']).orderBy('createdAt','desc').get();
+      s.forEach(d=> ticketsDiv.appendChild(tCard({id:d.id, ...d.data()})));
+    }
+
+    building.onchange=drawGrid;
+
+    auth.onAuthStateChanged(async (u)=>{ if(!u) location.href='index.html'; who.textContent=u.displayName||u.email; drawGrid(); loadTickets(); });
     logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
   </script>
 </body>
