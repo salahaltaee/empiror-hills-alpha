@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>لوحة الإدارة – Emperor Hills Alpha</title>
+  <title>لوحة الإدارة</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -17,11 +17,9 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
         <span class="fw-bold">لوحة الإدارة</span>
-        <select id="building" class="form-select form-select-sm" style="width:120px">
-          <option value="C2">C2</option><option value="C4">C4</option><option value="C6">C6</option>
-        </select>
+        <select id="building" class="form-select form-select-sm" style="width:120px"><option>C2</option><option>C4</option><option>C6</option></select>
       </div>
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex gap-2">
         <a class="btn btn-outline-secondary btn-sm btn-pill" href="users.html">إدارة المستخدمين</a>
         <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
       </div>
@@ -29,92 +27,158 @@
   </nav>
 
   <main class="container py-3">
+
     <div class="row g-3 mb-3">
-      <div class="col-6 col-md-3"><div class="card p-3"><div class="text-muted small">وحدات مفحوصة</div><div id="kInspected" class="fw-bold fs-4">0</div></div></div>
-      <div class="col-6 col-md-3"><div class="card p-3"><div class="text-muted small">وحدات مكتملة</div><div id="kDone" class="fw-bold fs-4">0</div></div></div>
-      <div class="col-6 col-md-3"><div class="card p-3"><div class="text-muted small">آخر تحديث</div><div id="kUpdated" class="fw-bold fs-6">—</div></div></div>
+      <div class="col-6 col-md-3"><div class="card p-3"><div class="small text-muted">شقق غير منجزة</div><div id="kRemain" class="fw-bold fs-4">0</div></div></div>
+      <div class="col-6 col-md-3"><div class="card p-3"><div class="small text-muted">نسبة الإنجاز</div><div id="kPct" class="fw-bold fs-4">0%</div></div></div>
+      <div class="col-12"><div class="card p-3"><h6>شبكة الوحدات</h6><div id="grid" class="row g-2"></div></div></div>
     </div>
 
-    <div class="card p-3">
-      <h6>الوحدات</h6>
-      <div id="list" class="row g-2"></div>
+    <!-- الموافقات -->
+    <div class="card p-3 mb-3">
+      <h6>طلبات من المجمع بانتظار الموافقة</h6>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">اختر فني للإسناد</label>
+          <select id="techAssign" class="form-select"></select>
+        </div>
+      </div>
+      <div id="pending" class="row g-2 mt-2"></div>
     </div>
+
+    <!-- إنشاء طلب يدوي -->
+    <div class="card p-3">
+      <h6>إضافة طلب صيانة</h6>
+      <div class="row g-2">
+        <div class="col-md-2"><select id="b" class="form-select"><option>C2</option><option>C4</option><option>C6</option></select></div>
+        <div class="col-md-2"><select id="f" class="form-select"></select></div>
+        <div class="col-md-2"><select id="u" class="form-select"></select></div>
+        <div class="col-md-3"><input id="desc" class="form-control" placeholder="الوصف"/></div>
+        <div class="col-md-1"><select id="prio" class="form-select"><option value="P2">P2</option><option value="P1">P1</option></select></div>
+        <div class="col-md-2"><select id="tech" class="form-select"></select></div>
+        <div class="col-md-12 d-grid"><button id="create" class="btn btn-primary btn-pill">إنشاء و إسناد</button></div>
+      </div>
+    </div>
+
   </main>
 
-  <!-- Firebase SDKs -->
+  <!-- Modal تفاصيل الشقة -->
+  <div class="modal fade" id="unitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="mTitle">تفاصيل الشقة</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div id="mBody"></div></div>
+        <div class="modal-footer"><button class="btn btn-light" data-bs-dismiss="modal">إغلاق</button></div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
-      authDomain: "empiror-hills-alpha.firebaseapp.com",
-      projectId: "empiror-hills-alpha",
-      storageBucket: "empiror-hills-alpha.appspot.com",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const cfg={apiKey:"AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",authDomain:"empiror-hills-alpha.firebaseapp.com",projectId:"empiror-hills-alpha",storageBucket:"empiror-hills-alpha.appspot.com"};
+    firebase.initializeApp(cfg); const auth=firebase.auth(); const db=firebase.firestore();
 
-    const building = document.getElementById('building');
-    const list = document.getElementById('list');
-    const kInspected = document.getElementById('kInspected');
-    const kDone = document.getElementById('kDone');
-    const kUpdated = document.getElementById('kUpdated');
+    const building=document.getElementById('building'), grid=document.getElementById('grid'), kRemain=document.getElementById('kRemain'), kPct=document.getElementById('kPct');
+    const m=new bootstrap.Modal(document.getElementById('unitModal')); const mTitle=document.getElementById('mTitle'), mBody=document.getElementById('mBody');
 
-    function progressOf(u){
-      const okSingle = (u.singlePts||[]).filter(Boolean).length;
-      const okDouble = (u.doublePts||[]).filter(Boolean).length;
-      const okTriple = (u.triplePts||[]).filter(Boolean).length;
-      const okRem = (u.remotes||[]).filter(Boolean).length;
-      const total = okSingle + okDouble + okTriple + okRem + (u.ctlScreen?1:0) + (u.lock103?1:0);
-      const max = 5+1+9+4+1+1;
-      return Math.round(100*total/max);
+    function unitId(b,f,u){ return `${b}_${f}_${u}`; }
+    function score(d){ return (d.singlePts||[]).filter(Boolean).length+(d.doublePts||[]).filter(Boolean).length+(d.triplePts||[]).filter(Boolean).length+(d.remotes||[]).filter(Boolean).length+(d.ctlScreen?1:0)+(d.lock103?1:0); }
+
+    async function loadGrid(){
+      grid.innerHTML=''; const b=building.value; let remain=0, done=0, total=16*4, latest=0;
+      for(let f=16; f>=1; f--){
+        for(const u of ['A','B','C','D']){
+          const id=unitId(b,f,u); const doc=await db.collection('unitInspections').doc(id).get(); const d=doc.data(); const max=5+1+9+4+1+1;
+          const pct=d? Math.round(100*score(d)/max) : 0;
+          if(!d || score(d)<max) remain++; else done++;
+          const col=document.createElement('div'); col.className='col-3';
+          col.innerHTML=`<button class="btn ${pct===100?'btn-success':'btn-outline-secondary'} w-100">${f}/${u} • ${pct}%</button>`;
+          col.querySelector('button').onclick=()=> openUnit(b,f,u,d);
+          grid.appendChild(col);
+        }
+      }
+      kRemain.textContent=remain; kPct.textContent=Math.round((done/total)*100)+'%';
     }
 
-    function card(u){
-      const pct = progressOf(u);
-      const div=document.createElement('div');
-      div.className='col-12 col-md-6 col-lg-4';
+    function openUnit(b,f,u,d){
+      mTitle.textContent=`${b}/${f}/${u}`;
+      const items=[];
+      const mk=(ok,label)=> items.push(`<li>${ok?'✅':'⛔️'} ${label}</li>`);
+      const arr=(a,n)=> Array.from({length:n},(_,i)=> !!(a&&a[i]));
+      const dd=d||{};
+      arr(dd.singlePts,5).forEach((x,i)=> mk(x,`نقطة أحادية ${i+1}`));
+      arr(dd.doublePts,1).forEach((x,i)=> mk(x,`نقطة ثنائية ${i+1}`));
+      arr(dd.triplePts,9).forEach((x,i)=> mk(x,`نقطة ثلاثية ${i+1}`));
+      mk(!!dd.ctlScreen,'شاشة تحكم');
+      arr(dd.remotes,4).forEach((x,i)=> mk(x,`ريموت سبلت ${i+1}`));
+      mk(!!dd.lock103,'قفل الباب 103');
+      mBody.innerHTML=`<ul>${items.join('')}</ul>`;
+      m.show();
+    }
+
+    //===== الموافقات =====
+    const pending=document.getElementById('pending'); const techAssign=document.getElementById('techAssign');
+    async function loadTechs(sel){
+      sel.innerHTML=''; const s=await db.collection('users').where('role','==','tech').where('isActive','!=',false).get();
+      s.forEach(d=>{ const u=d.data(); const o=document.createElement('option'); o.value=d.id; o.textContent=u.displayName||u.email; sel.appendChild(o); });
+    }
+
+    function tCard(t){
+      const div=document.createElement('div'); div.className='col-12 col-md-6 col-lg-4';
       div.innerHTML=`<div class="card p-3 h-100">
         <div class="d-flex justify-content-between">
-          <div class="fw-bold">${u.unitLabel}</div>
-          <span class="badge ${pct===100?'text-bg-success':'text-bg-secondary'}">${pct}%</span>
+          <span class="badge ${t.priority==='P1'?'text-bg-danger':'text-bg-warning'}">${t.priority}</span>
+          <small class="text-muted">${new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toLocaleString('ar-IQ')}</small>
         </div>
-        <div class="small text-muted">${u.tech?.name||''}</div>
+        <div class="fw-bold">${t.building}/${t.floor}/${t.unit}</div>
+        <div class="small mb-2">${t.description||''}</div>
+        <button class="btn btn-sm btn-primary">اعتماد وإسناد للفني المختار</button>
       </div>`;
+      div.querySelector('button').onclick=async()=>{
+        const techId=techAssign.value; const techDoc=await db.collection('users').doc(techId).get(); const tech=techDoc.data();
+        await db.collection('tickets').doc(t.id).set({
+          status:'assigned',
+          approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          approvedBy: 'admin',
+          assignedTo: {uid: techId, name: tech.displayName||tech.email}
+        },{merge:true});
+        loadPending();
+      };
       return div;
     }
 
-    async function load(){
-      list.innerHTML='';
-      const b = building.value;
-      let inspected=0, done=0; let latest=0;
-      const units=[];
-      for(let f=1; f<=16; f++){
-        for(const u of ['A','B','C','D']){
-          const id = `${b}_${f}_${u}`;
-          const snap = await db.collection('unitInspections').doc(id).get();
-          if(snap.exists){
-            const data = snap.data(); units.push(data);
-            inspected++;
-            if(progressOf(data)===100) done++;
-            latest = Math.max(latest, (data.updatedAt?.toDate?.()||data.updatedAt||0));
-          } else {
-            units.push({ unitLabel:`${b}/${f}/${u}` });
-          }
-        }
-      }
-      units.forEach(u=> list.appendChild(card(u)));
-      kInspected.textContent = inspected;
-      kDone.textContent = done;
-      kUpdated.textContent = latest? new Date(latest).toLocaleString('ar-IQ') : '—';
+    async function loadPending(){
+      pending.innerHTML=''; await loadTechs(techAssign);
+      const s=await db.collection('tickets').where('status','==','new').orderBy('createdAt','desc').limit(30).get();
+      s.forEach(d=> pending.appendChild(tCard({id:d.id, ...d.data()})));
     }
 
-    building.onchange=load;
-    auth.onAuthStateChanged(u=>{ if(!u) location.href='index.html'; else load(); });
+    //===== إنشاء يدوي =====
+    const f=document.getElementById('f'), u=document.getElementById('u'), bSel=document.getElementById('b'), techSel=document.getElementById('tech'), prio=document.getElementById('prio'), desc=document.getElementById('desc');
+    function fillFU(){ f.innerHTML=''; for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='ط '+i; f.appendChild(o);} u.innerHTML=''; ['A','B','C','D'].forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent='شقة '+x; u.appendChild(o);}); }
+    async function loadTechSel(){ techSel.innerHTML=''; const s=await db.collection('users').where('role','==','tech').where('isActive','!=',false).get(); s.forEach(d=>{ const u=d.data(); const o=document.createElement('option'); o.value=d.id; o.textContent=u.displayName||u.email; techSel.appendChild(o); }); }
+    fillFU(); loadTechSel();
+
+    document.getElementById('create').onclick = async ()=>{
+      const techId=techSel.value; const techDoc=await db.collection('users').doc(techId).get(); const tech=techDoc.data();
+      await db.collection('tickets').add({
+        building:bSel.value, floor:Number(f.value), unit:u.value,
+        description:desc.value.trim(), priority: prio.value,
+        status:'assigned', createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        approvedBy:'admin',
+        assignedTo:{uid:techId, name:tech.displayName||tech.email}
+      });
+      desc.value='';
+      await loadPending();
+    };
+
+    // إقلاع
+    building.onchange=loadGrid;
+    auth.onAuthStateChanged(u=>{ if(!u) location.href='index.html'; else { loadGrid(); loadPending(); }});
     logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
   </script>
 </body>
