@@ -1,226 +1,91 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>لوحة الفني – Emperor Hills Alpha</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
-    .kpi{ border-radius:16px; padding:14px; background:#fff; box-shadow:0 6px 16px #00000012 }
-    .ticket-card{ border-radius:14px; overflow:hidden; box-shadow:0 6px 16px #00000010 }
-    .badge-dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
-    .state-new{ background:#e5e7eb }
-    .state-assigned{ background:#3b82f6 }
-    .state-progress{ background:#f59e0b }
-    .state-hold{ background:#8b5cf6 }
-    .state-done{ background:#16a34a }
-    .state-overdue{ background:#ef4444 }
+    .card{ border-radius:16px; box-shadow:0 8px 24px #00000012 }
     .btn-pill{ border-radius:999px }
-    .thumbnail{ width:68px; height:68px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb }
-    /* تفقد الشقة */
-    .unit-cell{ min-width:72px; min-height:56px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; display:flex; align-items:center; justify-content:center; gap:.35rem; cursor:pointer; transition:.2s; position:relative; }
-    .unit-cell:hover{ transform: translateY(-2px); box-shadow:0 8px 20px #00000012 }
-    .unit-label{ font-weight:700; }
-    .grid{ display:grid; grid-template-columns: repeat(5, max-content); gap:.5rem .75rem; align-items:center }
-    .floor-label{ font-weight:700; color:#64748b }
+    .checkbox-tile{ border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff }
   </style>
 </head>
 <body>
   <nav class="navbar bg-white border-bottom shadow-sm">
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-2">
-        <span class="fw-bold">لوحة الفني • Emperor Hills Alpha</span>
-        <select id="buildingFilter" class="form-select form-select-sm" style="width:140px">
-          <option value="all">كل البنايات</option>
-          <option value="C2">C2</option>
-          <option value="C4">C4</option>
-          <option value="C6">C6</option>
+        <span class="fw-bold">لوحة الفني</span>
+        <select id="building" class="form-select form-select-sm" style="width:120px">
+          <option value="C2">C2</option><option value="C4">C4</option><option value="C6">C6</option>
         </select>
+        <select id="floor" class="form-select form-select-sm" style="width:120px"></select>
+        <select id="unit" class="form-select form-select-sm" style="width:140px"></select>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <span id="whoami" class="text-muted small"></span>
+        <span id="who" class="text-muted small"></span>
+        <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
       </div>
     </div>
   </nav>
 
   <main class="container py-3">
-
-    <div class="row g-3 mb-3">
-      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">مهامي اليوم</div><div id="kToday" class="fw-bold fs-4">0</div></div></div>
-      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">قيد التنفيذ</div><div id="kProgress" class="fw-bold fs-4">0</div></div></div>
-      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">مكتملة هذا الأسبوع</div><div id="kWeek" class="fw-bold fs-4">0</div></div></div>
-      <div class="col-6 col-md-3"><div class="kpi"><div class="text-muted small">متأخرة عن SLA</div><div id="kOverdue" class="fw-bold fs-4">0</div></div></div>
-    </div>
-
-    <ul class="nav nav-pills mb-3" id="tabs" role="tablist">
-      <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-assigned" data-bs-toggle="pill" data-bs-target="#p-assigned" type="button" role="tab">المسندة إليّ</button></li>
-      <li class="nav-item" role="presentation"><button class="nav-link" id="tab-available" data-bs-toggle="pill" data-bs-target="#p-available" type="button" role="tab">متاحة للالتقاط</button></li>
-      <li class="nav-item" role="presentation"><button class="nav-link" id="tab-done" data-bs-toggle="pill" data-bs-target="#p-done" type="button" role="tab">مكتملة</button></li>
-      <li class="nav-item" role="presentation"><button class="nav-link" id="tab-inspect" data-bs-toggle="pill" data-bs-target="#p-inspect" type="button" role="tab">تفقد الشقة</button></li>
-    </ul>
-
-    <div class="tab-content">
-      <div class="tab-pane fade show active" id="p-assigned" role="tabpanel"><div id="listAssigned" class="row g-3"></div></div>
-      <div class="tab-pane fade" id="p-available" role="tabpanel"><div id="listAvailable" class="row g-3"></div></div>
-      <div class="tab-pane fade" id="p-done" role="tabpanel"><div id="listDone" class="row g-3"></div></div>
-
-      <!-- تفقد الشقة -->
-      <div class="tab-pane fade" id="p-inspect" role="tabpanel">
-        <div class="card p-3">
-          <h6 class="fw-bold mb-3">اختيار الشقة</h6>
-          <div class="row g-2 align-items-end mb-3">
-            <div class="col-12 col-md-3">
-              <label class="form-label">البناية</label>
-              <select id="iBuilding" class="form-select">
-                <option value="C2">C2</option>
-                <option value="C4">C4</option>
-                <option value="C6">C6</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label">الطابق</label>
-              <select id="iFloor" class="form-select"></select>
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label">الشقة</label>
-              <select id="iUnit" class="form-select"></select>
-            </div>
-            <div class="col-12 col-md-3 d-grid">
-              <button id="btnLoadInspect" class="btn btn-outline-primary">تحميل/بدء التفقد</button>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <div class="grid" id="unitsGrid"></div>
-          </div>
-
-          <div id="inspectWrap" class="d-none">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-bold">حالة الشقة: <span id="iCode" class="text-muted"></span></div>
-              <div class="small text-muted">آخر تحديث: <span id="iUpdated">—</span></div>
-            </div>
-
-            <div class="row g-3">
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">1) نقطة أحادية <span class="text-muted">×5</span></div>
-                  <div id="chk-single" class="d-flex flex-wrap gap-2"></div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">2) نقطة ثنائية <span class="text-muted">×1</span></div>
-                  <div id="chk-double" class="d-flex flex-wrap gap-2"></div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">3) نقطة ثلاثية <span class="text-muted">×9</span></div>
-                  <div id="chk-triple" class="d-flex flex-wrap gap-2"></div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">4) شاشة تحكم</div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="chk-screen">
-                    <label class="form-check-label" for="chk-screen">موجودة وتعمل</label>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">5) ريموت تحكم بالسبلت <span class="text-muted">×4</span></div>
-                  <div id="chk-remote" class="d-flex flex-wrap gap-2"></div>
-                </div>
-              </div>
-              <div class="col-12 col-md-6">
-                <div class="border rounded p-3 h-100">
-                  <div class="fw-bold mb-2">6) قفل الباب 103</div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="chk-lock">
-                    <label class="form-check-label" for="chk-lock">مثبّت ويعمل</label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 mt-3">
-              <button id="btnSaveInspect" class="btn btn-success">حفظ الحالة</button>
-              <button id="btnClearInspect" class="btn btn-light">تفريغ</button>
-            </div>
+    <div class="card p-3 mb-3">
+      <h6 class="mb-2">قائمة فحص الوحدة</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">1) نقطة أحادية ×5</div>
+            <div class="d-flex flex-wrap gap-2 mt-2" id="singlePts"></div>
           </div>
         </div>
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">2) نقطة ثنائية ×1</div>
+            <div class="d-flex gap-2 mt-2" id="doublePts"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">3) نقطة ثلاثية ×9</div>
+            <div class="d-flex flex-wrap gap-2 mt-2" id="triplePts"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">4) شاشة تحكم</div>
+            <div class="form-check mt-2"><input id="ctlScreen" class="form-check-input" type="checkbox"> <label class="form-check-label" for="ctlScreen">تم التحقق</label></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">5) ريموت تحكم بالسبلت ×4</div>
+            <div class="d-flex flex-wrap gap-2 mt-2" id="remotes"></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="checkbox-tile">
+            <div class="fw-bold">6) قفل الباب 103</div>
+            <div class="form-check mt-2"><input id="lock103" class="form-check-input" type="checkbox"> <label class="form-check-label" for="lock103">تم التحقق</label></div>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button id="save" class="btn btn-success btn-pill">حفظ الحالة</button>
+        <span id="msg" class="small text-muted"></span>
       </div>
     </div>
   </main>
 
-  <!-- Modal: Ticket Details / Actions -->
-  <div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">تفاصيل التذكرة</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div id="tMeta" class="mb-3 small text-muted"></div>
-          <p id="tDesc" class="mb-3"></p>
-          <div id="tAttachments" class="d-flex gap-2 flex-wrap mb-3"></div>
-
-          <div class="border rounded p-3 mb-2">
-            <div class="mb-2 fw-bold">إجراءات</div>
-            <div class="d-flex flex-wrap gap-2">
-              <button id="btnPick" class="btn btn-outline-primary btn-sm">استلام المهمة</button>
-              <button id="btnStart" class="btn btn-primary btn-sm">بدء العمل</button>
-              <button id="btnHold" class="btn btn-warning btn-sm">إيقاف مؤقت</button>
-              <button id="btnComplete" class="btn btn-success btn-sm">وضع مكتمل</button>
-            </div>
-          </div>
-
-          <div class="border rounded p-3">
-            <div class="mb-2 fw-bold">إغلاق / تقرير الإنجاز</div>
-            <div class="row g-3">
-              <div class="col-md-12">
-                <label class="form-label">ملاحظات</label>
-                <textarea id="cNotes" class="form-control" rows="3"></textarea>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">قطع/مواد مستخدمة (اختياري)</label>
-                <input id="cParts" class="form-control" placeholder="مثال: سلك 2م، فيوز 10A"/>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">تكلفة تقديرية (اختياري)</label>
-                <input id="cCost" type="number" class="form-control" placeholder="IQD"/>
-              </div>
-              <div class="col-12">
-                <label class="form-label">صور قبل/بعد (اختياري)</label>
-                <input id="cFiles" type="file" multiple accept="image/*,video/mp4" class="form-control"/>
-                <div id="cPreviews" class="d-flex gap-2 flex-wrap mt-2"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-light" data-bs-dismiss="modal">إغلاق</button>
-          <button id="btnSaveCompletion" class="btn btn-success">حفظ كـ مكتمل</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
 
   <script>
-    // ===== Firebase Init =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -228,329 +93,46 @@
       storageBucket: "empiror-hills-alpha.appspot.com",
     };
     firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
     const auth = firebase.auth();
+    const db = firebase.firestore();
 
-    // ===== State =====
-    let currentTech = JSON.parse(localStorage.getItem('eh_tech')||'null');
-    let currentTicket = null; // for modal actions
+    const building = document.getElementById('building');
+    const floor = document.getElementById('floor');
+    const unit = document.getElementById('unit');
+    const who = document.getElementById('who');
+    const msg = document.getElementById('msg');
 
-    // تفقد الشقة Spec & State
-    const SPEC = { single:5, double:1, triple:9, remote:4, screen:1, lock:1 };
-    let INSPECT = { code:null, building:null, floor:null, unit:null, items:{} };
+    function fillFloors(){ floor.innerHTML=''; for(let f=1; f<=16; f++){ const o=document.createElement('option'); o.value=f; o.textContent='طابق '+String(f).padStart(2,'0'); floor.appendChild(o); } }
+    function fillUnits(){ unit.innerHTML=''; ['A','B','C','D'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent='شقة '+u; unit.appendChild(o); }); }
+    fillFloors(); fillUnits();
 
-    // ===== UI =====
-    const whoami = document.getElementById('whoami');
-    const buildingFilter = document.getElementById('buildingFilter');
-
-    const listAssigned = document.getElementById('listAssigned');
-    const listAvailable = document.getElementById('listAvailable');
-    const listDone = document.getElementById('listDone');
-
-    const kToday = document.getElementById('kToday');
-    const kProgress = document.getElementById('kProgress');
-    const kWeek = document.getElementById('kWeek');
-    const kOverdue = document.getElementById('kOverdue');
-
-    const ticketModal = new bootstrap.Modal(document.getElementById('ticketModal'));
-    const tMeta = document.getElementById('tMeta');
-    const tDesc = document.getElementById('tDesc');
-    const tAttachments = document.getElementById('tAttachments');
-    const btnPick = document.getElementById('btnPick');
-    const btnStart = document.getElementById('btnStart');
-    const btnHold = document.getElementById('btnHold');
-    const btnComplete = document.getElementById('btnComplete');
-    const btnSaveCompletion = document.getElementById('btnSaveCompletion');
-    const cNotes = document.getElementById('cNotes');
-    const cParts = document.getElementById('cParts');
-    const cCost = document.getElementById('cCost');
-    const cFiles = document.getElementById('cFiles');
-    const cPreviews = document.getElementById('cPreviews');
-
-    // تفقد الشقة UI
-    const iBuilding = document.getElementById('iBuilding');
-    const iFloor = document.getElementById('iFloor');
-    const iUnit = document.getElementById('iUnit');
-    const btnLoadInspect = document.getElementById('btnLoadInspect');
-    const unitsGrid = document.getElementById('unitsGrid');
-    const inspectWrap = document.getElementById('inspectWrap');
-    const iCode = document.getElementById('iCode');
-    const iUpdated = document.getElementById('iUpdated');
-    const chkSingle = document.getElementById('chk-single');
-    const chkDouble = document.getElementById('chk-double');
-    const chkTriple = document.getElementById('chk-triple');
-    const chkRemote = document.getElementById('chk-remote');
-    const chkScreen = document.getElementById('chk-screen');
-    const chkLock = document.getElementById('chk-lock');
-    const btnSaveInspect = document.getElementById('btnSaveInspect');
-    const btnClearInspect = document.getElementById('btnClearInspect');
-
-    // ===== Helpers =====
-    const stateClass = (status) => {
-      switch(status){
-        case 'new': return 'state-new';
-        case 'assigned': return 'state-assigned';
-        case 'in_progress': return 'state-progress';
-        case 'on_hold': return 'state-hold';
-        case 'completed': return 'state-done';
-        default: return 'state-new';
+    function mkChecks(holderId, n){
+      const holder = document.getElementById(holderId);
+      holder.innerHTML='';
+      for(let i=0;i<n;i++){
+        const id=holderId+'_'+i;
+        holder.insertAdjacentHTML('beforeend', `<div class="form-check"><input class="form-check-input" id="${id}" type="checkbox"><label class="form-check-label" for="${id}">${i+1}</label></div>`);
       }
     }
+    mkChecks('singlePts',5); mkChecks('doublePts',1); mkChecks('triplePts',9); mkChecks('remotes',4);
 
-    const fmtDate = (ts)=> {
-      try{ return new Date(ts?.toDate?.() || ts || Date.now()).toLocaleString('ar-IQ'); }catch(e){ return '' }
-    }
+    function setChecks(prefix, arr){ for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; el.checked=!!arr[i]; } }
+    function getChecks(prefix){ const arr=[]; for(let i=0;;i++){ const el=document.getElementById(prefix+'_'+i); if(!el) break; arr.push(!!el.checked); } return arr; }
 
-    function unitCode(b, f, u){ return `${b}-${String(f).padStart(2,'0')}${u}`; }
-
-    function buildUnitGrid(building){
-      unitsGrid.innerHTML = '';
-      const header = document.createElement('div');
-      header.className = 'grid mb-2';
-      header.innerHTML = `<div></div><div class="text-muted">A</div><div class="text-muted">B</div><div class="text-muted">C</div><div class="text-muted">D</div>`;
-      unitsGrid.appendChild(header);
-      for(let f=16; f>=1; f--){
-        const row = document.createElement('div'); row.className='grid';
-        row.innerHTML = `<div class="floor-label">الطابق ${String(f).padStart(2,'0')}</div>`;
-        ['A','B','C','D'].forEach(u=>{
-          const code = unitCode(building, f, u);
-          const cell = document.createElement('button');
-          cell.type='button'; cell.className='unit-cell';
-          cell.innerHTML = `<span class="unit-label">${String(f).padStart(2,'0')}${u}</span>`;
-          cell.addEventListener('click', ()=>{ iFloor.value=f; iUnit.value=u; loadInspection(); });
-          row.appendChild(cell);
-        })
-        unitsGrid.appendChild(row);
-      }
-    }
-
-    function fillFloorUnitSelectors(){
-      iFloor.innerHTML=''; iUnit.innerHTML='';
-      for(let i=1;i<=16;i++){ const op=document.createElement('option'); op.value=i; op.textContent=i; iFloor.appendChild(op); }
-      ['A','B','C','D'].forEach(u=>{ const op=document.createElement('option'); op.value=u; op.textContent=u; iUnit.appendChild(op); });
-    }
-
-    function makeCheckboxes(container, count, group){
-      container.innerHTML='';
-      for(let i=1;i<=count;i++){
-        const id = `${group}-${i}`;
-        const div = document.createElement('div');
-        div.className='form-check form-check-inline';
-        div.innerHTML = `<input class=\"form-check-input\" type=\"checkbox\" id=\"${id}\"><label class=\"form-check-label\" for=\"${id}\">${i}</label>`;
-        container.appendChild(div);
-      }
-    }
-
-    function applyInspectionToUI(items){
-      ['single','double','triple','remote'].forEach(g=>{
-        const count = SPEC[g];
-        for(let i=1;i<=count;i++){
-          const el = document.getElementById(`${g}-${i}`);
-          if(el) el.checked = !!items?.[g]?.[i];
-        }
-      })
-      chkScreen.checked = !!items?.screen;
-      chkLock.checked = !!items?.lock;
-    }
-
-    function collectInspectionFromUI(){
-      const items = { single:{}, double:{}, triple:{}, remote:{}, screen: chkScreen.checked, lock: chkLock.checked };
-      ['single','double','triple','remote'].forEach(g=>{
-        const count = SPEC[g];
-        for(let i=1;i<=count;i++){
-          const el = document.getElementById(`${g}-${i}`);
-          items[g][i] = !!el?.checked;
-        }
-      })
-      return items;
-    }
-
-    function summarize(items){
-      const counts = { single:0, double:0, triple:0, remote:0, screen: items.screen?1:0, lock: items.lock?1:0 };
-      for(let i in items.single){ if(items.single[i]) counts.single++; }
-      for(let i in items.double){ if(items.double[i]) counts.double++; }
-      for(let i in items.triple){ if(items.triple[i]) counts.triple++; }
-      for(let i in items.remote){ if(items.remote[i]) counts.remote++; }
-      const total = SPEC.single+SPEC.double+SPEC.triple+SPEC.remote+SPEC.screen+SPEC.lock;
-      const done = counts.single+counts.double+counts.triple+counts.remote+counts.screen+counts.lock;
-      const pct = Math.round((done/total)*100);
-      return { counts, total, done, pct };
-    }
-
-    // ===== Tickets Loading =====
-    async function loadTickets(){
-      const b = buildingFilter.value;
-      // Assigned to me
-      const uid = currentTech?.uid || '__none__';
-      let q1 = db.collection('tickets').where('assignedTo.uid','==', uid);
-      if(b !== 'all') q1 = q1.where('building','==', b);
-      q1 = q1.orderBy('createdAt','desc').limit(30);
-      const s1 = await q1.get();
-
-      // Available (new & unassigned)
-      let q2 = db.collection('tickets').where('status','in', ['new','assigned']);
-      if(b !== 'all') q2 = q2.where('building','==', b);
-      q2 = q2.orderBy('createdAt','desc').limit(30);
-      const s2 = await q2.get();
-
-      // Done (completed)
-      let q3 = db.collection('tickets').where('status','==','completed');
-      if(b !== 'all') q3 = q3.where('building','==', b);
-      q3 = q3.orderBy('updatedAt','desc').limit(30);
-      const s3 = await q3.get();
-
-      // Render
-      listAssigned.innerHTML=''; s1.forEach(d=> listAssigned.appendChild(ticketCard({id:d.id, ...d.data()})) );
-      listAvailable.innerHTML=''; s2.forEach(d=>{ const t={id:d.id,...d.data()}; if(!t.assignedTo||!t.assignedTo.uid) listAvailable.appendChild(ticketCard(t)); });
-      listDone.innerHTML=''; s3.forEach(d=> listDone.appendChild(ticketCard({id:d.id, ...d.data()})) );
-
-      // KPIs
-      kToday.textContent = s1.docs.filter(d=>{ const dt=d.data().createdAt?.toDate?.()||d.data().createdAt||Date.now(); const today=new Date(); today.setHours(0,0,0,0); return (new Date(dt)>=today); }).length;
-      kProgress.textContent = s1.docs.filter(d=> d.data().status==='in_progress').length;
-      kWeek.textContent = s3.docs.filter(d=>{ const dt=d.data().updatedAt?.toDate?.()||d.data().updatedAt||Date.now(); const weekAgo=new Date(Date.now()-7*24*60*60*1000); return (new Date(dt)>=weekAgo); }).length;
-      kOverdue.textContent = s1.docs.filter(d=>{ const t=d.data(); const created=new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).getTime(); const ageH=(Date.now()-created)/3600000; if(t.priority==='P1'&&ageH>4) return true; if(t.priority==='P2'&&ageH>24) return true; return false; }).length;
-    }
-
-    function ticketCard(t){
-      const div = document.createElement('div'); div.className='col-12 col-md-6 col-lg-4';
-      div.innerHTML = `
-        <div class="card ticket-card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="badge ${t.priority==='P1'?'text-bg-danger':t.priority==='P2'?'text-bg-warning':'text-bg-secondary'}">${t.priority}</span>
-              <span class="badge-dot ${stateClass(t.status)}"></span>
-            </div>
-            <h6 class="card-title mb-1">${t.code}</h6>
-            <div class="text-muted small mb-2">${t.building} • طابق ${String(t.floor).padStart(2,'0')} • ${t.unitLabel}</div>
-            <p class="card-text small">${(t.description||'').slice(0,140)}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="small text-muted">${fmtDate(t.createdAt)}</span>
-              <button class="btn btn-sm btn-outline-primary">فتح</button>
-            </div>
-          </div>
-        </div>`;
-      div.querySelector('button').addEventListener('click', ()=> openTicket(t.id||t.code));
-      return div;
-    }
-
-    async function openTicket(id){
-      const doc = await db.collection('tickets').doc(id).get();
-      if(!doc.exists) return alert('التذكرة غير موجودة');
-      const t = {id:doc.id, ...doc.data()};
-      currentTicket = t;
-      tMeta.innerHTML = `<div class="d-flex flex-wrap gap-2 align-items-center">
-        <span class="badge-dot ${stateClass(t.status)}"></span>
-        <span>${t.code}</span>
-        <span class="text-muted">• ${t.building} • طابق ${String(t.floor).padStart(2,'0')} • ${t.unitLabel}</span>
-        <span class="badge ${t.priority==='P1'?'text-bg-danger':t.priority==='P2'?'text-bg-warning':'text-bg-secondary'}">${t.priority}</span>
-        <span class="text-muted">إنشاء: ${fmtDate(t.createdAt)}</span>
-      </div>`;
-      tDesc.textContent = t.description || '';
-      tAttachments.innerHTML = '';
-      (t.attachments||[]).forEach(a=>{ const el=document.createElement(a.type?.startsWith('image/')?'img':'video'); el.src=a.url; el.className='thumbnail'; if(el.tagName==='VIDEO') el.controls=true; tAttachments.appendChild(el); })
-      btnPick.style.display = (!t.assignedTo || !t.assignedTo.uid)? 'inline-block':'none';
-      btnStart.style.display = (t.assignedTo?.uid===currentTech?.uid && t.status!=='in_progress')? 'inline-block':'none';
-      btnHold.style.display = (t.assignedTo?.uid===currentTech?.uid && t.status==='in_progress')? 'inline-block':'none';
-      btnComplete.style.display = (t.assignedTo?.uid===currentTech?.uid && (t.status==='in_progress' || t.status==='on_hold'))? 'inline-block':'none';
-      cNotes.value=''; cParts.value=''; cCost.value=''; cFiles.value=''; cPreviews.innerHTML='';
-      ticketModal.show();
-    }
-
-    // ===== Ticket Actions =====
-    async function pickTicket(){ if(!currentTech) return alert('سجّل الدخول أولاً'); const ref=db.collection('tickets').doc(currentTicket.id); await db.runTransaction(async (tx)=>{ const snap=await tx.get(ref); const t=snap.data(); if(t.assignedTo && t.assignedTo.uid) throw new Error('تم إسنادها مسبقًا'); tx.update(ref,{assignedTo:{uid:currentTech.uid,name:currentTech.name},status:'assigned',acceptedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()}); }); await openTicket(currentTicket.id); await refreshAll(); }
-    async function startWork(){ const ref=db.collection('tickets').doc(currentTicket.id); await ref.update({status:'in_progress',startedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),assignedTo:{uid:currentTech.uid,name:currentTech.name}}); await openTicket(currentTicket.id); await refreshAll(); }
-    async function holdWork(){ const ref=db.collection('tickets').doc(currentTicket.id); await ref.update({ status:'on_hold', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); await openTicket(currentTicket.id); await refreshAll(); }
-
-    async function uploadCompletionFiles(ticketId){ const files=Array.from(cFiles.files||[]); const uploaded=[]; for(const file of files){ const ref=storage.ref(`attachments/${ticketId}/after_${Date.now()}_${file.name}`); await ref.put(file); const url=await ref.getDownloadURL(); uploaded.push({name:file.name,url,type:file.type,size:file.size,tag:'after'}); } return uploaded; }
-
-    async function saveCompletion(){ if(!currentTicket) return; const id=currentTicket.id; const after=await uploadCompletionFiles(id); const ref=db.collection('tickets').doc(id); await ref.update({ status:'completed', completedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAt:firebase.firestore.FieldValue.serverTimestamp(), completion:{ by:{uid:currentTech.uid,name:currentTech.name}, notes:cNotes.value||'', parts:cParts.value||'', cost:Number(cCost.value||0)||0 }, attachments: firebase.firestore.FieldValue.arrayUnion(...after) }); ticketModal.hide(); await refreshAll(); alert('تم حفظ التذكرة كمكتملة'); }
-
-    // ===== Inspection Load/Save =====
-    function renderChecklist(){
-      makeCheckboxes(chkSingle, SPEC.single, 'single');
-      makeCheckboxes(chkDouble, SPEC.double, 'double');
-      makeCheckboxes(chkTriple, SPEC.triple, 'triple');
-      makeCheckboxes(chkRemote, SPEC.remote, 'remote');
-    }
-
-    async function loadInspection(){
-      const b=iBuilding.value; const f=parseInt(iFloor.value); const u=iUnit.value; if(!b||!f||!u) return alert('اختر البناية والطابق والشقة');
-      const code = unitCode(b,f,u);
-      renderChecklist();
-      const ref = db.collection('unitInspections').doc(code);
-      const snap = await ref.get();
-      const data = snap.exists ? snap.data() : { code, building:b, floor:f, unit:u, items:{} };
-      INSPECT = data;
-      iCode.textContent = code; iUpdated.textContent = data.updatedAt ? fmtDate(data.updatedAt) : '—';
-      applyInspectionToUI(data.items);
-      inspectWrap.classList.remove('d-none');
-    }
-
-    async function saveInspection(){
-      if(!INSPECT || !iCode.textContent) return;
-      const items = collectInspectionFromUI();
-      const summary = summarize(items);
-      const payload = {
-        code: iCode.textContent,
-        building: iBuilding.value,
-        floor: parseInt(iFloor.value),
-        unit: iUnit.value,
-        items,
-        summary,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        by: { uid: currentTech?.uid||'', name: currentTech?.name||'' }
-      };
-      await db.collection('unitInspections').doc(payload.code).set(payload, { merge:true });
-      alert('تم حفظ حالة التفقد');
-      iUpdated.textContent = new Date().toLocaleString('ar-IQ');
-    }
-
-    function setupBuildings(scope){
-      const allowed = (Array.isArray(scope) && scope.length)? scope : ['C2','C4','C6'];
-      // Fill top filter
-      buildingFilter.innerHTML='';
-      if(allowed.length>1){ const optAll=document.createElement('option'); optAll.value='all'; optAll.textContent='كل البنايات'; buildingFilter.appendChild(optAll); }
-      allowed.forEach(b=>{ const o=document.createElement('option'); o.value=b; o.textContent=b; buildingFilter.appendChild(o); });
-      // Fill inspection selector
-      iBuilding.innerHTML=''; allowed.forEach(b=>{ const o=document.createElement('option'); o.value=b; o.textContent=b; iBuilding.appendChild(o); });
-      // Default
-      buildingFilter.value = allowed[0] || 'all';
-      iBuilding.value = allowed[0] || 'C2';
-      buildUnitGrid(iBuilding.value);
-    }
-
-    async function refreshAll(){ await loadTickets(); }
-
-    // ===== Events =====
-    document.getElementById('btnPick').addEventListener('click', pickTicket);
-    document.getElementById('btnStart').addEventListener('click', startWork);
-    document.getElementById('btnHold').addEventListener('click', holdWork);
-    document.getElementById('btnSaveCompletion').addEventListener('click', saveCompletion);
-
-    btnLoadInspect.addEventListener('click', loadInspection);
-    btnSaveInspect.addEventListener('click', saveInspection);
-    btnClearInspect.addEventListener('click', ()=> applyInspectionToUI({}));
-    iBuilding.addEventListener('change', ()=> buildUnitGrid(iBuilding.value));
-
-    // Auth-aware init: بعد تسجيل الدخول نجيب البناية/النطاق للفني
     auth.onAuthStateChanged(async (u)=>{
-      if(u){
-        currentTech = { uid:u.uid, name: u.displayName || u.email || 'Technician' };
-        whoami.textContent = `الفني: ${currentTech.name}`;
-        localStorage.setItem('eh_tech', JSON.stringify(currentTech));
-        const prof = await db.collection('users').doc(u.uid).get();
-        const scope = prof.data()?.buildingScope || [];
-        setupBuildings(scope);
-        fillFloorUnitSelectors();
-        await refreshAll();
-      } else {
-        // مستخدم غير مسجل، نعرض الكل افتراضياً
-        setupBuildings(['C2','C4','C6']);
-        fillFloorUnitSelectors();
-        await refreshAll();
-      }
+      if(!u) return location.href='index.html';
+      who.textContent = u.displayName||u.email;
+      const snap = await db.collection('users').doc(u.uid).get();
+      const scope = snap.data()?.buildingScope||[];
+      if(scope.length) building.value = scope[0];
+      await loadCurrent();
     });
-  </script>
-</body>
-</html>
+
+    async function loadCurrent(){
+      msg.textContent='';
+      const id = `${building.value}_${floor.value}_${unit.value}`;
+      const ref = db.collection('unitInspections').doc(id);
+      const doc = await ref.get();
+      const data = doc.data()||{};
+      setChecks('singlePts', data.singlePts||[]);
+      setCheck
