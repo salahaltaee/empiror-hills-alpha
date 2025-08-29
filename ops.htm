@@ -1,164 +1,55 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>لوحة المجمع – Emperor Hills Alpha</title>
+  <title>لوحة العمليات – Emperor Hills Alpha</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --ok:#16a34a; --warn:#f59e0b; --info:#3b82f6; --muted:#9ca3af; --danger:#ef4444; --hold:#8b5cf6; }
-    body { font-family: 'Cairo', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a0a; }
-    .unit-cell{ min-width:84px; min-height:64px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; display:flex; align-items:center; justify-content:center; gap:.35rem; cursor:pointer; transition:.2s; position:relative; }
-    .unit-cell:hover{ transform: translateY(-2px); box-shadow:0 8px 20px #00000012 }
-    .unit-label{ font-weight:700; }
-    .badge-dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
-    .state-new{ background: #e5e7eb }
-    .state-assigned{ background: var(--info) }
-    .state-progress{ background: var(--warn) }
-    .state-hold{ background: var(--hold) }
-    .state-done{ background: var(--ok) }
-    .state-overdue{ background: var(--danger) }
-    .floor-label{ font-weight:700; color:#64748b }
-    .sticky-tools{ position:sticky; top:0; z-index:10; background:linear-gradient(#ffffffdd,#ffffffcc); backdrop-filter: blur(6px); }
+    body{ font-family:'Cairo',system-ui; background:#0f172a0a; }
+    .card{ border-radius:16px; box-shadow:0 8px 24px #00000012 }
     .btn-pill{ border-radius:999px }
-    .grid-wrap{ overflow:auto; }
-    .grid{ display:grid; grid-template-columns: repeat(5, max-content); gap:.5rem .75rem; align-items:center }
-    .unit-mini{ font-size: .75rem; color:#64748b }
-    .form-step{ display:none }
-    .form-step.active{ display:block }
-    .thumbnail{ width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
+  <nav class="navbar bg-white border-bottom shadow-sm">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold">Emperor Hills Alpha • لوحة المجمع</a>
       <div class="d-flex align-items-center gap-2">
-        <select id="buildingSelect" class="form-select form-select-sm" style="width:140px">
-          <option value="C2">C2</option>
-          <option value="C4">C4</option>
-          <option value="C6">C6</option>
-        </select>
-        <button class="btn btn-primary btn-sm btn-pill" id="btnNewTicket">+ إنشاء بلاغ</button>
+        <span class="fw-bold">لوحة العمليات</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button id="logout" class="btn btn-outline-secondary btn-sm btn-pill">خروج</button>
       </div>
     </div>
   </nav>
 
   <main class="container py-3">
-    <div class="sticky-tools py-2 mb-3 d-flex gap-2 align-items-center justify-content-between">
-      <div class="d-flex gap-2 align-items-center">
-        <span class="badge text-bg-secondary">16 طابق × 4 شقق</span>
-        <span class="small text-muted">أخضر: مكتمل • أصفر: قيد التنفيذ • أزرق: مُسند • بنفسجي: انتظار • أحمر: متأخر • رمادي: لا تذاكر</span>
-      </div>
-      <div class="input-group" style="max-width: 340px;">
-        <span class="input-group-text">بحث</span>
-        <input id="searchInput" type="text" class="form-control" placeholder="أدخل رقم شقة مثل C2-07B أو وصف المشكلة" />
+    <div class="card p-3 mb-3">
+      <h6>إنشاء بلاغ</h6>
+      <div class="row g-2">
+        <div class="col-md-2"><select id="b" class="form-select"><option>C2</option><option>C4</option><option>C6</option></select></div>
+        <div class="col-md-2"><select id="f" class="form-select"></select></div>
+        <div class="col-md-2"><select id="u" class="form-select"></select></div>
+        <div class="col-md-3"><input id="desc" class="form-control" placeholder="الوصف"/></div>
+        <div class="col-md-2"><select id="prio" class="form-select"><option value="P2">P2</option><option value="P1">P1</option></select></div>
+        <div class="col-md-1 d-grid"><button id="create" class="btn btn-primary btn-pill">إنشاء</button></div>
       </div>
     </div>
 
-    <div class="grid-wrap">
-      <div class="grid" id="buildingGrid"></div>
-    </div>
-
-    <hr class="my-4">
-
-    <div>
-      <h5 class="mb-3">آخر البلاغات</h5>
-      <div id="recentTickets" class="row g-3"></div>
+    <div class="card p-3">
+      <h6>البلاغات الأخيرة</h6>
+      <div id="list" class="row g-2"></div>
     </div>
   </main>
 
-  <!-- Modal: Create Ticket -->
-  <div class="modal fade" id="ticketModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">إنشاء بلاغ جديد</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="ticketForm">
-            <div class="form-step active" data-step="1">
-              <div class="row g-3">
-                <div class="col-md-3">
-                  <label class="form-label">البناية</label>
-                  <select class="form-select" id="fBuilding">
-                    <option value="C2">C2</option>
-                    <option value="C4">C4</option>
-                    <option value="C6">C6</option>
-                  </select>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">الطابق</label>
-                  <select class="form-select" id="fFloor"></select>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">الشقة</label>
-                  <select class="form-select" id="fUnit"></select>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">الأولوية</label>
-                  <select class="form-select" id="fPriority">
-                    <option value="P3">P3 – متوسط</option>
-                    <option value="P2">P2 – عالي</option>
-                    <option value="P1">P1 – عاجل</option>
-                    <option value="P4">P4 – منخفض</option>
-                  </select>
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">التصنيف</label>
-                  <select class="form-select" id="fCategory">
-                    <option>كهرباء</option>
-                    <option>ماء/سباكة</option>
-                    <option>مصاعد</option>
-                    <option>سكيورتي/كاميرات</option>
-                    <option>نظافة</option>
-                    <option>حدائق</option>
-                    <option>إنترنت/شبكات</option>
-                    <option>أخرى</option>
-                  </select>
-                </div>
-                <div class="col-md-8">
-                  <label class="form-label">وصف المشكلة</label>
-                  <textarea class="form-control" id="fDesc" rows="3" placeholder="اكتب وصف واضح للمشكلة"></textarea>
-                </div>
-                <div class="col-12">
-                  <label class="form-label">صور مرفقة (اختياري)</label>
-                  <input type="file" class="form-control" id="fFiles" accept="image/*,video/mp4" multiple>
-                  <div id="previews" class="d-flex gap-2 flex-wrap mt-2"></div>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">اسم المبلّغ</label>
-                  <input class="form-control" id="fReporter" placeholder="اسم مسؤول المجمع" />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">هاتف للتواصل</label>
-                  <input class="form-control" id="fPhone" placeholder="07XXXXXXXX" />
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
-          <button id="btnSubmitTicket" class="btn btn-primary">إرسال البلاغ</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <!-- Firebase SDKs -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Firebase Compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
 
   <script>
-    // ===== Firebase Init =====
     const firebaseConfig = {
       apiKey: "AIzaSyAP5RViS9WdyEo8EaBflHyFag_T9_NKT7w",
       authDomain: "empiror-hills-alpha.firebaseapp.com",
@@ -166,232 +57,47 @@
       storageBucket: "empiror-hills-alpha.appspot.com",
     };
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
-    const storage = firebase.storage();
 
-    // ===== Constants =====
-    const BUILDINGS = ["C2","C4","C6"]; const FLOORS = 16; const UNITS = ["A","B","C","D"]; 
-
-    // ===== UI Elements =====
-    const gridEl = document.getElementById('buildingGrid');
-    const buildingSelect = document.getElementById('buildingSelect');
-    const btnNewTicket = document.getElementById('btnNewTicket');
-    const ticketModal = new bootstrap.Modal(document.getElementById('ticketModal'));
-    const fBuilding = document.getElementById('fBuilding');
-    const fFloor = document.getElementById('fFloor');
-    const fUnit = document.getElementById('fUnit');
-    const fPriority = document.getElementById('fPriority');
-    const fCategory = document.getElementById('fCategory');
-    const fDesc = document.getElementById('fDesc');
-    const fFiles = document.getElementById('fFiles');
-    const fReporter = document.getElementById('fReporter');
-    const fPhone = document.getElementById('fPhone');
-    const previews = document.getElementById('previews');
-    const recentTickets = document.getElementById('recentTickets');
-    const searchInput = document.getElementById('searchInput');
-
-    // ===== Helpers =====
-    const unitCode = (b, f, u) => `${b}-${String(f).padStart(2,'0')}${u}`;
-    const stateClass = (status, overdue=false) => {
-      if (overdue) return 'state-overdue';
-      switch(status){
-        case 'new': return 'state-new';
-        case 'assigned': return 'state-assigned';
-        case 'in_progress': return 'state-progress';
-        case 'on_hold': return 'state-hold';
-        case 'completed': return 'state-done';
-        default: return 'state-new';
-      }
+    function fill(){ 
+      f.innerHTML=''; for(let i=1;i<=16;i++){ const o=document.createElement('option'); o.value=i; o.textContent='ط '+i; f.appendChild(o); }
+      u.innerHTML=''; ['A','B','C','D'].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent='شقة '+s; u.appendChild(o);});
     }
+    fill();
 
-    function buildGrid(building){
-      gridEl.innerHTML = '';
-      // header row
-      const header = document.createElement('div');
-      header.className = 'grid mb-2';
-      header.style.gridTemplateColumns = 'repeat(5, max-content)';
-      header.innerHTML = `<div></div><div class="text-muted">A</div><div class="text-muted">B</div><div class="text-muted">C</div><div class="text-muted">D</div>`;
-      gridEl.appendChild(header);
-
-      for(let f=FLOORS; f>=1; f--){
-        const row = document.createElement('div');
-        row.className = 'grid';
-        row.style.gridTemplateColumns = 'repeat(5, max-content)';
-        const label = document.createElement('div');
-        label.className = 'floor-label me-2';
-        label.textContent = `الطابق ${String(f).padStart(2,'0')}`;
-        row.appendChild(label);
-        UNITS.forEach(u=>{
-          const code = unitCode(building, f, u);
-          const cell = document.createElement('button');
-          cell.type = 'button';
-          cell.className = 'unit-cell';
-          cell.dataset.code = code;
-          cell.innerHTML = `<span class="badge-dot state-new"></span><span class="unit-label">${code.split('-')[1]}</span>`;
-          cell.addEventListener('click',()=> openCreateFor(code));
-          row.appendChild(cell);
-        });
-        gridEl.appendChild(row);
-      }
-    }
-
-    function populateFloorUnitSelectors(){
-      fFloor.innerHTML = ''; fUnit.innerHTML = '';
-      for(let i=1;i<=FLOORS;i++){ const opt=document.createElement('option'); opt.value=i; opt.textContent=i; fFloor.appendChild(opt); }
-      UNITS.forEach(u=>{ const opt=document.createElement('option'); opt.value=u; opt.textContent=u; fUnit.appendChild(opt); });
-    }
-
-    function openCreateFor(code){
-      const [b, rest] = code.split('-');
-      const floor = parseInt(rest.slice(0,2));
-      const u = rest.slice(2);
-      fBuilding.value = b; fFloor.value = floor; fUnit.value = u;
-      ticketModal.show();
-    }
-
-    function showNewModal(){
-      fBuilding.value = buildingSelect.value; fFloor.value = 1; fUnit.value = 'A';
-      fPriority.value = 'P3'; fCategory.value = 'أخرى'; fDesc.value=''; fReporter.value=''; fPhone.value='';
-      previews.innerHTML=''; fFiles.value='';
-      ticketModal.show();
-    }
-
-    function previewFiles(){
-      previews.innerHTML='';
-      Array.from(fFiles.files).forEach(file=>{
-        const url = URL.createObjectURL(file);
-        const el = document.createElement(file.type.startsWith('image/')?'img':'video');
-        el.src = url; el.className = 'thumbnail'; if(el.tagName==='VIDEO'){ el.controls=true; }
-        previews.appendChild(el);
-      });
-    }
-
-    async function loadStatuses(building){
-      // Query latest ticket per unit in this building
-      // For demo: we query last 200 tickets and map
-      const snap = await db.collection('tickets')
-        .where('building','==', building)
-        .orderBy('createdAt','desc').limit(200).get();
-      const byUnit = {};
-      snap.forEach(doc=>{ const t=doc.data(); if(!byUnit[t.unitCode]) byUnit[t.unitCode]=t; });
-      document.querySelectorAll('.unit-cell').forEach(cell=>{
-        const code = cell.dataset.code; const last = byUnit[code];
-        const dot = cell.querySelector('.badge-dot');
-        dot.className = 'badge-dot ' + (last? stateClass(last.status, last.overdue): 'state-new');
-        cell.title = last ? `آخر حالة: ${last.status} • ${last.category || ''}` : 'لا توجد تذاكر';
-      });
-    }
-
-    function ticketCard(t){
-      const div = document.createElement('div');
-      div.className = 'col-12 col-md-6 col-lg-4';
-      div.innerHTML = `
-        <div class="card h-100 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="badge ${t.priority==='P1'?'text-bg-danger':t.priority==='P2'?'text-bg-warning':'text-bg-secondary'}">${t.priority}</span>
-              <span class="badge-dot ${stateClass(t.status)}"></span>
-            </div>
-            <h6 class="card-title mb-1">${t.code}</h6>
-            <div class="text-muted small mb-2">${t.building} • طابق ${String(t.floor).padStart(2,'0')} • ${t.unitLabel}</div>
-            <p class="card-text small">${(t.description||'').slice(0,140)}</p>
-            <div class="text-muted small">${new Date(t.createdAt?.toDate?.() || t.createdAt || Date.now()).toLocaleString('ar-IQ')}</div>
-          </div>
-        </div>`;
+    function card(t){
+      const div=document.createElement('div');
+      div.className='col-12 col-md-6 col-lg-4';
+      div.innerHTML=`<div class="card p-3 h-100">
+        <div class="d-flex justify-content-between">
+          <span class="badge ${t.priority==='P1'?'text-bg-danger':'text-bg-warning'}">${t.priority}</span>
+          <span class="small text-muted">${new Date(t.createdAt?.toDate?.()||t.createdAt||Date.now()).toLocaleString('ar-IQ')}</span>
+        </div>
+        <div class="fw-bold">${t.building}/${t.floor}/${t.unit}</div>
+        <div class="small">${t.description||''}</div>
+      </div>`;
       return div;
     }
 
-    async function loadRecentTickets(){
-      const q = db.collection('tickets').orderBy('createdAt','desc').limit(9);
-      const snap = await q.get();
-      recentTickets.innerHTML='';
-      snap.forEach(doc=>{ recentTickets.appendChild(ticketCard(doc.data())); });
+    async function load(){
+      list.innerHTML='';
+      const s=await db.collection('tickets').orderBy('createdAt','desc').limit(24).get();
+      s.forEach(d=> list.appendChild(card({id:d.id,...d.data()})));
     }
 
-    async function uploadAttachments(ticketId){
-      const files = Array.from(fFiles.files||[]);
-      const uploaded = [];
-      for(const file of files){
-        const ref = storage.ref(`attachments/${ticketId}/${Date.now()}_${file.name}`);
-        await ref.put(file);
-        const url = await ref.getDownloadURL();
-        uploaded.push({name:file.name, url, type:file.type, size:file.size});
-      }
-      return uploaded;
-    }
-
-    async function submitTicket(){
-      const b = fBuilding.value; const fl = parseInt(fFloor.value); const u = fUnit.value;
-      const code = unitCode(b, fl, u);
-      const tId = `TCK-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-      const base = {
-        id: tId,
-        code: tId,
-        building: b,
-        floor: fl,
-        unitLabel: u,
-        unitCode: code,
-        priority: fPriority.value,
-        category: fCategory.value,
-        description: fDesc.value?.trim()||'',
-        status: 'new',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdBy: { role:'ops', name: fReporter.value||'', phone: fPhone.value||'' }
+    create.onclick = async ()=>{
+      const t={
+        building:b.value, floor:Number(f.value), unit:u.value,
+        code:`T-${Date.now()}`, priority: prio.value, description:desc.value.trim(),
+        status:'new', createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
-      // create doc first to get ID path same as tId
-      await db.collection('tickets').doc(tId).set(base);
-      const atts = await uploadAttachments(tId);
-      if(atts.length){ await db.collection('tickets').doc(tId).update({ attachments: atts, attachmentsCount: atts.length, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); }
-      ticketModal.hide();
-      buildGrid(buildingSelect.value); // reset grid visuals
-      await loadStatuses(buildingSelect.value);
-      await loadRecentTickets();
-      alert('تم إرسال البلاغ بنجاح');
-    }
+      await db.collection('tickets').add(t);
+      desc.value=''; await load();
+    };
 
-    function initSelectors(){
-      populateFloorUnitSelectors();
-      // reflect current building
-      fBuilding.addEventListener('change', ()=>{ /* optional sync */ });
-    }
-
-    // ===== Events =====
-    buildingSelect.addEventListener('change', async ()=>{
-      buildGrid(buildingSelect.value);
-      await loadStatuses(buildingSelect.value);
-    });
-    btnNewTicket.addEventListener('click', showNewModal);
-    fFiles.addEventListener('change', previewFiles);
-    document.getElementById('btnSubmitTicket').addEventListener('click', submitTicket);
-
-    searchInput.addEventListener('input', async (e)=>{
-      const q = e.target.value.trim();
-      if(!q){ await loadRecentTickets(); return; }
-      const ref = db.collection('tickets');
-      let snap;
-      if(q.startsWith('C')){
-        snap = await ref.where('unitCode','==', q).orderBy('createdAt','desc').limit(12).get();
-      } else {
-        // naive text search (client filter)
-        snap = await ref.orderBy('createdAt','desc').limit(50).get();
-      }
-      recentTickets.innerHTML='';
-      snap.forEach(doc=>{
-        const t = doc.data();
-        if(q.startsWith('C') || (t.description||'').includes(q)){
-          recentTickets.appendChild(ticketCard(t));
-        }
-      })
-    });
-
-    // ===== Init =====
-    (async function(){
-      initSelectors();
-      buildGrid(buildingSelect.value);
-      await loadStatuses(buildingSelect.value);
-      await loadRecentTickets();
-    })();
+    auth.onAuthStateChanged(u=>{ if(!u) location.href='index.html'; else load(); });
+    logout.onclick=()=> auth.signOut().then(()=> location.href='index.html');
   </script>
 </body>
 </html>
